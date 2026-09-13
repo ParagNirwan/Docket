@@ -1,0 +1,12 @@
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\bin\Debug\net10.0\Docket.ServiceDefaults.deps.json
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\bin\Debug\net10.0\Docket.ServiceDefaults.dll
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\bin\Debug\net10.0\Docket.ServiceDefaults.pdb
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\Docket.ServiceDefaults.csproj.AssemblyReference.cache
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\Docket.ServiceDefaults.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\Docket.ServiceDefaults.AssemblyInfoInputs.cache
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\Docket.ServiceDefaults.AssemblyInfo.cs
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\Docket.ServiceDefaults.csproj.CoreCompileInputs.cache
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\Docket.ServiceDefaults.dll
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\refint\Docket.ServiceDefaults.dll
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\Docket.ServiceDefaults.pdb
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\ref\Docket.ServiceDefaults.dll
