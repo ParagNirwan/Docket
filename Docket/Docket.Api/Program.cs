@@ -28,7 +28,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     };
 }); builder.Services.AddAuthorization();
 
-
+// Cors Check
+builder.Services.AddCors(options => { options.AddPolicy("AllowClient", policy => { policy.WithOrigins("http://localhost:9000").AllowAnyHeader().AllowAnyMethod(); }); });
 
 var app = builder.Build();
 
@@ -48,7 +49,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication(); 
+app.UseCors("AllowClient"); 
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 
