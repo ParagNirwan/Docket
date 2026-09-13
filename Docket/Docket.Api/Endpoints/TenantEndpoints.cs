@@ -23,7 +23,7 @@ public static class TenantEndpoints
         {
             // Pull the "sub" claim out of the token - this is the user ID we put in
             // when we generated the token back in /auth/login.
-            var userIdClaim = user.FindFirst(JwtRegisteredClaimNames.Sub);
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
 
             // Defensive check: this should basically never be null if .RequireAuthorization()
             // did its job, but it's good practice to never trust that blindly.

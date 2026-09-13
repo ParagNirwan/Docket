@@ -32,7 +32,7 @@ export function RegisterPage() {
             console.log("Registration Failed")
             return
         } const data = await response.json()
-        console.log('Got token:', data.token)
+       // console.log('Got token:', data.token)
     }
     function validateInput() {
         //password check
