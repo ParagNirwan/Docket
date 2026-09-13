@@ -110,3 +110,4 @@ C:\Users\pnirw\Documents\Docket\Docket\Docket.AppHost\bin\Debug\net10.0\HealthCh
 C:\Users\pnirw\Documents\Docket\Docket\Docket.AppHost\bin\Debug\net10.0\Npgsql.dll
 C:\Users\pnirw\Documents\Docket\Docket\Docket.AppHost\obj\Debug\net10.0\Aspire\references\Docket_Api.ProjectMetadata.g.cs
 C:\Users\pnirw\Documents\Docket\Docket\Docket.AppHost\bin\Debug\net10.0\Aspire.Hosting.NodeJs.dll
+C:\Users\pnirw\Documents\Docket\Docket\Docket.AppHost\obj\Debug\net10.0\Docket.AppHost.sourcelink.json

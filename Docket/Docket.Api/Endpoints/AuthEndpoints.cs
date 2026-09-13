@@ -8,7 +8,7 @@ using System.Text;
 
 namespace Docket.Api.Endpoints;
 
-public record RegisterRequest(string Email, string Password); //A record is a special kind of C# type designed mainly for holding data and passing around in requests.
+public record RegisterRequest(string Email, string Password, string FullName); //A record is a special kind of C# type designed mainly for holding data and passing around in requests.
 public record LoginRequest(string Email, string Password);
 public static class AuthEndpoints
 {
@@ -20,6 +20,7 @@ public static class AuthEndpoints
             if (exists) return Results.Conflict("Email already registered.");
             var user = new User
             {
+                FullName = req.FullName,
                 Id = Guid.NewGuid(),
                 Email = req.Email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
