@@ -10,3 +10,4 @@ C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\
 C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\refint\Docket.ServiceDefaults.dll
 C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\Docket.ServiceDefaults.pdb
 C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\ref\Docket.ServiceDefaults.dll
+C:\Users\pnirw\Documents\Docket\Docket\Docket.ServiceDefaults\obj\Debug\net10.0\Docket.ServiceDefaults.sourcelink.json
