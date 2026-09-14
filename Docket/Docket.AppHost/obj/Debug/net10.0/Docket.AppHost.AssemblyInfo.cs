@@ -22,7 +22,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Docket.AppHost")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+14561862426229770a9827ea4fbb371393417da8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e3e2745ed1e1308b7e69c0fa27cdf46958cd6f19")]
 [assembly: System.Reflection.AssemblyProductAttribute("Docket.AppHost")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Docket.AppHost")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

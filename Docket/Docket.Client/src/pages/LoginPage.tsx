@@ -1,44 +1,56 @@
 import { useState } from "react"
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 
 export function LoginPage() {
-
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const navigate = useNavigate() //this helps to programatically change the url
+    const navigate = useNavigate()
     const [error, setError] = useState("");
 
-    //state changes → re-render → UI reflects the new state
-
-    // function to login
-    async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
 
-        //API Call now
-        const response = await fetch('https://localhost:7100/auth/login',
-            {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            })
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        })
         if (!response.ok) {
             setError("Login Failed");
             return
-        } const data = await response.json()
+        }
+        const data = await response.json()
 
-        //in prod we use httpOnly cookies to store the token which JS cant read. 
         localStorage.setItem('token', data.token)
         navigate('/create-tenant')
-        //console.log('Got token:', data.token)
     }
 
     return (
-        <div>
-            <h1>Log in</h1>
-            <form onSubmit={handleSubmit}>
-                <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} /> <br />
-                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} /> <br />
-                {error && <p style={{ color: 'red' }}>{error}</p>}
-                <button type="submit">Log in</button>
+        <div className="max-w-sm mx-auto mt-20 p-6 border rounded-lg">
+            <h1 className="text-2xl font-bold mb-4">Log in</h1>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border rounded px-3 py-2"
+                />
+                <input
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="border rounded px-3 py-2"
+                />
+                {error && <p className="text-red-600 text-sm">{error}</p>}
+                <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700">
+                    Log in
+                </button>
             </form>
-        </div>)
-} 
+            <p className="mt-4 text-sm">
+                No account yet? <Link to="/register" className="text-blue-600 hover:underline">Register now.</Link>
+            </p>
+        </div>
+    )
+}
