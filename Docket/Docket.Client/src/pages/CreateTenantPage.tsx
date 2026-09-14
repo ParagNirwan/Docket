@@ -1,9 +1,14 @@
 import { useState } from "react"
+import { useNavigate } from "react-router";
+import { logout } from "../lib/auth";
+
+
 export function CreateTenantPage() {
     const [name, setName] = useState("");
     const [slug, setSlug] = useState("");
     const [error, setError] = useState("");
     const token = localStorage.getItem('token')
+    const navigate = useNavigate();
 
     async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -56,8 +61,11 @@ export function CreateTenantPage() {
                 <input type="text" placeholder="organisation slug" value={slug} onChange={(e) => setSlug(e.target.value)} /> <br />
                 {error && <p style={{ color: 'red' }}>{error}</p>}
 
-                <button type="submit">Create Account</button>
-            </form>
+                <button type="submit">Create Account</button> <br />
+
+            </form> <br />
+
+            <button onClick={()=> logout(navigate)}>Temporary Logout Button</button>
         </div>
     )
 }

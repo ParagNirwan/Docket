@@ -73,7 +73,8 @@ export function RegisterPage() {
                 {error && <p style={{ color: 'red' }}>{error}</p>}
 
                 <button type="submit">Create Account</button>
-            </form>
+            </form> <br />
+            Already have an account? <a href="/login">Login Here.</a>
         </div>
     )
 

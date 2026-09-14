@@ -39,6 +39,10 @@ export function LoginPage() {
                 <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} /> <br />
                 {error && <p style={{ color: 'red' }}>{error}</p>}
                 <button type="submit">Log in</button>
-            </form>
-        </div>)
+            </form><br />
+
+            No Account Yet? <a href="/register">Register Now.</a>
+        </div>
+        
+    )
 } 
