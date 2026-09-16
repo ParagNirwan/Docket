@@ -82,6 +82,8 @@ namespace Docket.Api.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("TenantMemberships");
                 });
 
@@ -109,6 +111,17 @@ namespace Docket.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("Docket.Api.Data.TenantMembership", b =>
+                {
+                    b.HasOne("Docket.Api.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
                 });
 #pragma warning restore 612, 618
         }
