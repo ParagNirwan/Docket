@@ -22,7 +22,7 @@ export function LoginPage() {
         const data = await response.json()
 
         localStorage.setItem('token', data.token)
-        navigate('/create-tenant')
+        navigate('/tenants')
     }
 
     return (

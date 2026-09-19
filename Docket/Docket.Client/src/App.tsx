@@ -4,6 +4,8 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { CreateTenantPage } from "./pages/CreateTenantPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { UploadPage } from "./pages/UploadPage";
+import { TenantDashboardPage } from "./pages/TenantDashboardPage";
+import { ViewArchivePages } from "./pages/ViewArchivesPage";
 
 function App() {
   return (
@@ -19,10 +21,26 @@ function App() {
         }
       />
       <Route
+        path="/tenants"
+        element={
+          <ProtectedRoute>
+            <TenantDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/tenant/:tenantId/upload"
         element={
           <ProtectedRoute>
             <UploadPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tenant/:tenantId/view-archives"
+        element={
+          <ProtectedRoute>
+            <ViewArchivePages />
           </ProtectedRoute>
         }
       />

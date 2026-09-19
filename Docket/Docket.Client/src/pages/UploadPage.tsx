@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useParams } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 export function UploadPage() {
-  const { tenantId } = useParams(); // it captures the parameters from the url, in this case the tenant-id and gives back as an object
+  const { tenantId } = useParams();
   const [file, setFile] = useState<File | null>(null);
+  const navigate = useNavigate();
 
   async function handleUpload() {
     if (!file) return;
@@ -24,20 +26,28 @@ export function UploadPage() {
       alert("Upload failed");
       return;
     }
-    alert("Uploaded!");
     setFile(null);
+    navigate(`/tenant/${tenantId}/view-archives`)
   }
 
   return (
-    <div>
-      Upload File(s) :{" "}
-      <input
-        type="file"
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-      />
-      <button onClick={handleUpload} disabled={!file}>
-        Upload
-      </button>
+    <div className="max-w-sm mx-auto mt-20 p-6 border rounded-lg">
+      <h1 className="text-2xl font-bold mb-4">Upload File</h1>
+
+      <div className="flex flex-col gap-3">
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="border rounded px-3 py-2"
+        />
+        <button
+          onClick={handleUpload}
+          disabled={!file}
+          className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+        >
+          Upload
+        </button>
+      </div>
     </div>
   );
 }

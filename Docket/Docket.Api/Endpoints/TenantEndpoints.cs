@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Docket.Api.Services;
 namespace Docket.Api.Endpoints;
 
 public record CreateTenantRequest(string name, string slug);
@@ -16,9 +17,9 @@ public static class TenantEndpoints
             DocketDbContext db,
             CreateTenantRequest req,
             ClaimsPrincipal user // <-- ASP.NET Core automatically fills this in from the
-                                  //     validated JWT on the incoming request. This is only
-                                  //     possible because .RequireAuthorization() runs first
-                                  //     and rejects the request if there's no valid token.
+                                 //     validated JWT on the incoming request. This is only
+                                 //     possible because .RequireAuthorization() runs first
+                                 //     and rejects the request if there's no valid token.
             ) =>
         {
             // Pull the "sub" claim out of the token - this is the user ID we put in
@@ -71,5 +72,51 @@ public static class TenantEndpoints
             return Results.Created($"tenant/{tenant.Slug}", new { tenant.Id, tenant.Slug });
         })
         .RequireAuthorization();
+
+
+        //GET all tenants  a user has
+        app.MapGet("/tenant/list", async (
+        DocketDbContext db,
+        ClaimsPrincipal user) =>
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim is null)
+                    return Results.Unauthorized();
+
+                var userId = Guid.Parse(userIdClaim.Value);
+
+                var tenants = await db.TenantMemberships
+                .Where(m => m.UserId == userId)
+                .Include(m => m.Tenant)
+                .Select(m => new { m.Tenant!.Id, m.Tenant.Name, m.Tenant.Slug, m.Role })
+                .ToListAsync();
+                return Results.Ok(tenants);
+            }).RequireAuthorization();
+
+        //GET all uploaded files of a tenant
+        app.MapGet("tenants/{tenantId}/documents", async (
+            Guid tenantId,
+            DocketDbContext db,
+            ClaimsPrincipal user,
+            //we created this TenantAuthorizationService ourseleves. 
+            TenantAuthorizationService authService) =>
+            {
+                //We get user and check if he belongs
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim is null)
+                    return Results.Unauthorized();
+                var userId = Guid.Parse(userIdClaim.Value);
+
+                //check if he belongs
+                var isMember = await authService.IsMember(userId, tenantId);
+                if (!isMember) return Results.Forbid();
+
+                //here we get the docs.
+                var documents = await db.ArchivedDocuments.Where(d => d.TenantId == tenantId)
+                .OrderByDescending(d => d.FrozenAt)
+                .Select(d => new { d.Id, d.FileName, d.MimeType, d.SizeBytes, d.FrozenAt })
+                .ToListAsync();
+                return Results.Ok(documents);
+            }).RequireAuthorization();
     }
 }
