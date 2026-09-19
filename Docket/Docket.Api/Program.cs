@@ -11,8 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddNpgsqlDbContext<Docket.Api.Data.DocketDbContext>("docketdb");
 
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
+
+builder.Services.AddScoped<Docket.Api.Services.TenantAuthorizationService>();
 
 //JWT System
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -59,7 +61,7 @@ app.UseAuthorization();
 app.MapDocumentEndpoints();
 app.MapAuthEndpoints();
 app.MapTenantEndpoints(); 
-
+app.MapArchiveEndpoints();
 
 
 

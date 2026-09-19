@@ -29,9 +29,9 @@ export function CreateTenantPage() {
             setError("Tenant creation failed, please try again later");
             return;
         }
-        alert("Tenant created!");
         setName("");
         setSlug("");
+        navigate("/tenants")
     }
 
     function validateData() {

@@ -14,3 +14,5 @@
 .vs/
 .vscode/
 *.user
+
+**/uploads/
