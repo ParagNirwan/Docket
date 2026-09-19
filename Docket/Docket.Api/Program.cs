@@ -61,7 +61,7 @@ app.UseAuthorization();
 app.MapDocumentEndpoints();
 app.MapAuthEndpoints();
 app.MapTenantEndpoints(); 
-
+app.MapArchiveEndpoints();
 
 
 
