@@ -1,9 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Docket.Api.Data;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using Docket.Api.Services;
 namespace Docket.Api.Endpoints;
 
@@ -99,7 +96,8 @@ public static class TenantEndpoints
             DocketDbContext db,
             ClaimsPrincipal user,
             //we created this TenantAuthorizationService ourseleves. 
-            TenantAuthorizationService authService) =>
+            TenantAuthorizationService authService
+            ) =>
             {
                 //We get user and check if he belongs
                 var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
@@ -118,5 +116,34 @@ public static class TenantEndpoints
                 .ToListAsync();
                 return Results.Ok(documents);
             }).RequireAuthorization();
+
+        //
+        app.MapGet("/tenant/{tenantId}",
+        async (
+            Guid tenantId,
+            DocketDbContext db,
+            ClaimsPrincipal user,
+            TenantAuthorizationService authService) =>
+        {
+
+
+            var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim is null)
+                return Results.Unauthorized();
+            var userId = Guid.Parse(userIdClaim.Value);
+
+            //check if he belongs
+            var isMember = await authService.IsMember(userId, tenantId);
+            if (!isMember) return Results.Forbid();
+
+
+            var tenant = await db.Tenants.Where(t => t.Id == tenantId).Select(t => new { t.Id, t.Name, t.Slug }).FirstOrDefaultAsync();
+            if (tenant is null) 
+                return Results.NotFound(); 
+            return Results.Ok(tenant);
+        }).RequireAuthorization();
+
+
+
     }
 }

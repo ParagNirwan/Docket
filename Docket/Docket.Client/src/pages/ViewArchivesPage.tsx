@@ -11,7 +11,7 @@ type ArchivedFile = {
   frozenAt: string;
 };
 
-export function ViewArchivePages() {
+export function ViewArchivesPage() {
   const [files, setFiles] = useState<ArchivedFile[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
