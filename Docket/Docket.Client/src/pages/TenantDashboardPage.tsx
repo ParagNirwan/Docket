@@ -35,12 +35,6 @@ export function TenantDashboardPage() {
     <div className="max-w-lg mx-auto mt-20 p-6">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">My Tenants</h1>
-        <button
-          onClick={() => logout(navigate)}
-          className="text-sm text-gray-500 hover:text-red-600"
-        >
-          Log out
-        </button>
       </div>
 
       {loading && <p>Loading...</p>}

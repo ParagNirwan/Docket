@@ -2,50 +2,33 @@ import { Routes, Route } from "react-router";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { CreateTenantPage } from "./pages/CreateTenantPage";
-import { ProtectedRoute } from "./components/ProtectedRoute";
-import { UploadPage } from "./pages/UploadPage";
 import { TenantDashboardPage } from "./pages/TenantDashboardPage";
-import { ViewArchivePages } from "./pages/ViewArchivesPage";
-
+import { UploadPage } from "./pages/UploadPage";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { Layout } from "./layouts/Layout";
+import { ViewArchivesPage } from "./pages/ViewArchivesPage";
+import { AccountSettingsPage } from "./pages/AccountSettingsPage";
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route
-        path="/create-tenant"
         element={
           <ProtectedRoute>
-            <CreateTenantPage />
+            {" "}
+            <Layout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="/tenants"
-        element={
-          <ProtectedRoute>
-            <TenantDashboardPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tenant/:tenantId/upload"
-        element={
-          <ProtectedRoute>
-            <UploadPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/tenant/:tenantId/view-archives"
-        element={
-          <ProtectedRoute>
-            <ViewArchivePages />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route path="/tenants" element={<TenantDashboardPage />} />
+        <Route path="/create-tenant" element={<CreateTenantPage />} />
+        <Route path="/tenant/:tenantId/upload" element={<UploadPage />} />
+        <Route path="/tenant/:tenantId/view-archives" element={<ViewArchivesPage />}/>
+        <Route path="/account" element={<AccountSettingsPage />}/>
+
+      </Route>{" "}
     </Routes>
   );
 }
-
 export default App;
