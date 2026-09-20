@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
-import { logout } from "../lib/auth";
+import { Link } from "react-router";
 
 type Tenant = {
   id: string;
@@ -12,7 +11,7 @@ type Tenant = {
 export function TenantDashboardPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchTenants() {
