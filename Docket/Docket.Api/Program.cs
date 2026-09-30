@@ -9,13 +9,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.AddNpgsqlDbContext<Docket.Api.Data.DocketDbContext>("docketdb");
-
-
-
+builder.Services.AddScoped<Docket.Api.Services.CurrentUserService>();
 builder.Services.AddOpenApi();
-
 builder.Services.AddScoped<Docket.Api.Services.TenantAuthorizationService>();
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowClient",
+    policy =>
+    {
+        policy.WithOrigins("http://localhost:9000")
+    .AllowAnyHeader().AllowAnyMethod();
+    });
+});
 //JWT System
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
@@ -28,12 +33,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
     };
-}); builder.Services.AddAuthorization();
-
-// Cors Check
-builder.Services.AddCors(options => { options.AddPolicy("AllowClient", policy => { policy.WithOrigins("http://localhost:9000").AllowAnyHeader().AllowAnyMethod(); }); });
+});
+builder.Services.AddAuthorization();
+builder.Services.AddExceptionHandler<Docket.Api.ExceptionHandling.UnauthenticatedExceptionHandler>(); 
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+app.UseExceptionHandler(); 
 
 //Run EF Migrations automatically
 using (var scope = app.Services.CreateScope())
@@ -51,7 +57,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowClient"); 
+app.UseCors("AllowClient");
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -60,7 +66,7 @@ app.UseAuthorization();
 //calling endpoints 
 app.MapDocumentEndpoints();
 app.MapAuthEndpoints();
-app.MapTenantEndpoints(); 
+app.MapTenantEndpoints();
 app.MapArchiveEndpoints();
 
 
