@@ -18,16 +18,12 @@ public static class ArchiveEndpoint
         // MapPost defines an HTTP POST endpoint.
         // The string is the URL route. '{tenantId}' is a route parameter that is passed to the handler.
         app.MapPost("/tenant/{tenantId}/documents/upload",
-          // This is an 'async lambda function' (an anonymous method).
-          // It acts as the request handler that runs when the endpoint is called.
-           async (Guid tenantId, DocketDbContext db, TenantAuthorizationService authService, ClaimsPrincipal user, IFormFile file) =>
+           // This is an 'async lambda function' (an anonymous method).
+           // It acts as the request handler that runs when the endpoint is called.
+           async (CurrentUserService currentUserService, Guid tenantId, DocketDbContext db, TenantAuthorizationService authService, ClaimsPrincipal user, IFormFile file) =>
            {
                // 1. Identify the User: Get the unique ID of the person making the request from their security token
-               var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
-               if (userIdClaim is null)
-                   return Results.Unauthorized(); // Stop here if we can't find who the user is
-               
-               var userId = Guid.Parse(userIdClaim.Value);
+               var userId = currentUserService.GetUserId(user);
 
                // 2. Check Permissions: Make sure this user is actually a member of the tenant they are trying to upload to
                var isMember = await authService.IsMember(userId, tenantId);
@@ -76,6 +72,28 @@ public static class ArchiveEndpoint
         )
         .RequireAuthorization() // Middleware: Only authenticated users can access this endpoint
         .DisableAntiforgery();  // Middleware: Disables CSRF protection for this specific upload endpoint
+        app.MapGet("/tenant/{tenantId}/documents", async (
+        Guid tenantId,
+        CurrentUserService currentUserService,
+        DocketDbContext db,
+        TenantAuthorizationService authService,
+        ClaimsPrincipal user) =>
+    {
+        var userId = currentUserService.GetUserId(user);
+
+        var isMember = await authService.IsMember(userId, tenantId);
+        if (!isMember)
+            return Results.Forbid();
+
+        var documents = await db.ArchivedDocuments
+            .Where(d => d.TenantId == tenantId)
+            .OrderByDescending(d => d.FrozenAt)
+            .Select(d => new { d.Id, d.FileName, d.MimeType, d.SizeBytes, d.FrozenAt })
+            .ToListAsync();
+
+        return Results.Ok(documents);
+    })
+    .RequireAuthorization();
     }
 }
 

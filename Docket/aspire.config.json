@@ -1,5 +1,8 @@
 {
   "appHost": {
     "path": "Docket.AppHost/Docket.AppHost.csproj"
+  },
+  "features": {
+    "defaultWatchEnabled": "false"
   }
 }
