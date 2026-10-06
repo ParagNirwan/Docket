@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
+import { Archive, Upload, Plus, Building2 } from "lucide-react";
 
 type Tenant = {
   id: string;
@@ -48,31 +49,36 @@ export function TenantDashboardPage() {
             key={tenant.id}
             className="border rounded px-4 py-2 flex justify-between items-center"
           >
-            <div>
-              <p className="font-semibold">{tenant.name}</p>
-              <p className="text-sm text-gray-500">{tenant.slug}</p>
+            <div className="flex items-center gap-3">
+              <Building2 className="w-8 h-8 text-gray-400" />
+              <div>
+                <p className="font-semibold">{tenant.name}</p>
+                <p className="text-sm text-gray-500">{tenant.slug}</p>
+              </div>
             </div>
-            <Link
-              to={`/tenant/${tenant.id}/view-archives`}
-              className="text-blue-600 hover:underline text-sm"
-            >
-              View Files
-            </Link>
-            <Link
-              to={`/tenant/${tenant.id}/upload`}
-              className="text-blue-600 hover:underline text-sm"
-            >
-              Upload
-            </Link>
+            <div className="flex items-center gap-4">
+              <Link
+                to={`/tenant/${tenant.id}/view-archives`}
+                className="text-blue-600 hover:underline text-sm flex items-center gap-1.5"
+              >
+                <Archive className="w-4 h-4" /> View Files
+              </Link>
+              <Link
+                to={`/tenant/${tenant.id}/upload`}
+                className="text-blue-600 hover:underline text-sm flex items-center gap-1.5"
+              >
+                <Upload className="w-4 h-4" /> Upload
+              </Link>
+            </div>
           </li>
         ))}
       </ul>
 
       <Link
         to="/create-tenant"
-        className="inline-block mt-4 text-blue-600 hover:underline"
+        className="inline-flex items-center gap-1.5 mt-4 text-blue-600 hover:underline font-medium"
       >
-        + Create a new tenant
+        <Plus className="w-4 h-4" /> Create a new tenant
       </Link>
     </div>
   );

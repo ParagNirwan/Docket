@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router";
+import { Folder, File, FolderPlus, ArrowLeft } from "lucide-react";
 
 type ArchivedFile = {
   id: string;
@@ -239,10 +240,10 @@ export function ViewArchivesPage() {
       ) : (
         <button
           onClick={() => setShowCreateFolder(true)}
-          className="text-sm text-[var(--color-vault)] hover:underline mb-3"
+          className="text-sm text-[var(--color-vault)] hover:underline mb-3 flex items-center gap-1.5"
         >
           {" "}
-          + New folder{" "}
+          <FolderPlus className="w-4 h-4" /> New folder{" "}
         </button>
       )}
 
@@ -292,9 +293,9 @@ export function ViewArchivesPage() {
           <li key={folder.id}>
             <button
               onClick={() => openFolder(folder)}
-              className="w-full text-left border border-[var(--color-line)] rounded-md px-4 py-2 font-medium hover:bg-[#F2EFE8]"
+              className="w-full text-left border border-[var(--color-line)] rounded-md px-4 py-2 font-medium hover:bg-[#F2EFE8] flex items-center gap-2"
             >
-              📁 {folder.name}
+              <Folder className="w-4 h-4 text-gray-500" /> {folder.name}
             </button>
           </li>
         ))}
@@ -311,56 +312,37 @@ export function ViewArchivesPage() {
 
       <ul className="flex flex-col gap-2">
         {files.map((file) => (
-          <>
-            <li
-              key={file.id}
-              className="border border-[var(--color-line)] rounded-md px-4 py-2 flex justify-between items-center"
-            >
+          <li
+            key={file.id}
+            className="border border-[var(--color-line)] rounded-md px-4 py-2 flex justify-between items-center"
+          >
+            <div className="flex items-center gap-3">
+              <File className="w-8 h-8 text-gray-400 flex-shrink-0" />
               <div>
                 <p className="font-semibold">{file.fileName}</p>
-
-                <p className="text-sm text-[var(--color-muted)]">
-                  {convertToMB(file.sizeBytes)}
-                </p>
-
-                <p className="text-sm text-[var(--color-muted)]">
-                  {new Date(file.frozenAt).toLocaleString()}
-                </p>
+                <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                  <span>{convertToMB(file.sizeBytes)}</span>
+                  <span>&bull;</span>
+                  <span>{new Date(file.frozenAt).toLocaleString()}</span>
+                </div>
               </div>
-            </li>
-            <li
-              key={file.id}
-              className="border border-[var(--color-line)] rounded-md px-4 py-2 flex justify-between items-center"
+            </div>
+            <select
+              onChange={(e) => handleMove(file.id, e.target.value || null)}
+              defaultValue=""
+              className="text-sm border border-[var(--color-line)] rounded px-2 py-1 bg-transparent"
             >
-              {" "}
-              <div>
-                {" "}
-                <p className="font-semibold">{file.fileName}</p>{" "}
-                <p className="text-sm text-[var(--color-muted)]">
-                  {convertToMB(file.sizeBytes)}
-                </p>{" "}
-                <p className="text-sm text-[var(--color-muted)]">
-                  {new Date(file.frozenAt).toLocaleString()}
-                </p>{" "}
-              </div>{" "}
-              <select
-                onChange={(e) => handleMove(file.id, e.target.value || null)}
-                defaultValue=""
-                className="text-sm border border-[var(--color-line)] rounded px-2 py-1"
-              >
-                {" "}
-                <option value="" disabled>
-                  Move to...
-                </option>{" "}
-                <option value="">Root (no folder)</option>{" "}
-                {folders.map((folder) => (
-                  <option key={folder.id} value={folder.id}>
-                    {folder.name}
-                  </option>
-                ))}{" "}
-              </select>{" "}
-            </li>
-          </>
+              <option value="" disabled>
+                Move to...
+              </option>
+              <option value="">Root (no folder)</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
+          </li>
         ))}
       </ul>
 
