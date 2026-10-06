@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
+import { Upload } from "lucide-react";
 
 type Tray = { id: string; name: string };
 
@@ -82,9 +83,9 @@ export function UploadPage() {
         <button
           onClick={handleUpload}
           disabled={!file}
-          className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          Upload
+          <Upload className="w-4 h-4" /> Upload
         </button>
       </div>
     </div>
