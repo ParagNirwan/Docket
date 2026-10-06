@@ -68,7 +68,8 @@ app.MapDocumentEndpoints();
 app.MapAuthEndpoints();
 app.MapTenantEndpoints();
 app.MapArchiveEndpoints();
-
+app.MapTrayEndpoints();
+app.MapFolderEndpoints();
 
 
 app.Run();

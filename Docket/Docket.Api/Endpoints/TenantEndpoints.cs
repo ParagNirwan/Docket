@@ -5,6 +5,7 @@ using Docket.Api.Services;
 namespace Docket.Api.Endpoints;
 
 public record CreateTenantRequest(string name, string slug);
+public record MoveDocumentRequest(Guid? folderId);
 
 public static class TenantEndpoints
 {
@@ -16,7 +17,7 @@ public static class TenantEndpoints
             CreateTenantRequest req,
             ClaimsPrincipal user) =>
         {
-            
+
             var userId = currentUserService.GetUserId(user);
 
             var exists = await db.Tenants.AnyAsync(t => t.Slug == req.slug);
@@ -42,6 +43,18 @@ public static class TenantEndpoints
 
             db.Tenants.Add(tenant);
             db.TenantMemberships.Add(membership);
+
+            //Code tou create Default Trays
+            var defaultTray = new Tray
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenant.Id,
+                Name = "General",
+                CreatedAt = DateTime.UtcNow
+            };
+            db.Trays.Add(defaultTray);
+
+
             await db.SaveChangesAsync();
 
             return Results.Created($"tenant/{tenant.Slug}", new { tenant.Id, tenant.Slug });
@@ -76,7 +89,7 @@ public static class TenantEndpoints
             ClaimsPrincipal user,
             TenantAuthorizationService authService) =>
         {
-            // CHANGED: same replacement as above.
+
             var userId = currentUserService.GetUserId(user);
 
             var isMember = await authService.IsMember(userId, tenantId);
@@ -92,5 +105,37 @@ public static class TenantEndpoints
             return Results.Ok(tenant);
         })
         .RequireAuthorization();
+
+
+        app.MapPatch("/tenant/{tenantId}/documents/{documentId}/move",
+        async (
+            Guid tenantId,
+            Guid documentId,
+            MoveDocumentRequest req,
+            CurrentUserService currentUserService,
+            DocketDbContext db,
+            ClaimsPrincipal user,
+            TenantAuthorizationService authService
+            ) =>
+        {
+            var userId = currentUserService.GetUserId(user);
+
+            var isMember = await authService.IsMember(userId, tenantId);
+            if (!isMember)
+                return Results.Forbid();
+
+            var document = await db.ArchivedDocuments
+                .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId);
+
+            if (document is null)
+                return Results.NotFound();
+
+            document.FolderId = req.folderId;
+            await db.SaveChangesAsync();
+
+            return Results.Ok(document);
+        })
+        .RequireAuthorization();
+
     }
 }

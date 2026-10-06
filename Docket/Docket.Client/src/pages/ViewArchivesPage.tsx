@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router";
-import { logout } from "../lib/auth";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 
 type ArchivedFile = {
   id: string;
@@ -11,80 +9,368 @@ type ArchivedFile = {
   frozenAt: string;
 };
 
+type Tray = {
+  id: string;
+  name: string;
+};
+
+type FolderType = {
+  id: string;
+  name: string;
+  parentFolderId: string | null;
+};
+
 export function ViewArchivesPage() {
   const [files, setFiles] = useState<ArchivedFile[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [newFolderName, setNewFolderName] = useState("");
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [breadcrumb, setBreadcrumb] = useState<{ id: string; name: string }[]>(
+    [],
+  );
+  const [folders, setFolders] = useState<FolderType[]>([]);
+
   const { tenantId } = useParams();
 
-  //bytes to MB
-  function convertToMB(bytes:number){
-        if (bytes < 1024 * 1024) {
-        return (bytes / 1024).toFixed(1) + " KB"
+  const [trays, setTrays] = useState<Tray[]>([]);
+  const [selectedTrayId, setSelectedTrayId] = useState<string | null>(null);
+
+  function convertToMB(bytes: number) {
+    if (bytes < 1024 * 1024) {
+      return (bytes / 1024).toFixed(1) + " KB";
     }
-    return (bytes / 1024 / 1024).toFixed(2) + " MB"
+
+    return (bytes / 1024 / 1024).toFixed(2) + " MB";
   }
 
+  // Reset folder navigation when changing trays
+  useEffect(() => {
+    setCurrentFolderId(null);
+    setBreadcrumb([]);
+  }, [selectedTrayId]);
+
+  // Fetch archived files
   useEffect(() => {
     async function fetchFiles() {
+      if (!selectedTrayId) return;
+
+      setLoading(true);
+
       const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/documents`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
+
+      const url = currentFolderId
+        ? `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays/${selectedTrayId}/documents?folderId=${currentFolderId}`
+        : `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays/${selectedTrayId}/documents`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
+
       const data = await response.json();
+
       setFiles(data);
       setLoading(false);
     }
 
     fetchFiles();
-  }, []);
+  }, [selectedTrayId, currentFolderId, tenantId]);
+
+  // Fetch trays
+  useEffect(() => {
+    async function fetchTrays() {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      setTrays(data);
+
+      if (data.length > 0) {
+        setSelectedTrayId(data[0].id);
+      }
+    }
+
+    if (tenantId) {
+      fetchTrays();
+    }
+  }, [tenantId]);
+
+  // Fetch folders
+  useEffect(() => {
+    async function fetchFolders() {
+      if (!selectedTrayId) return;
+
+      const token = localStorage.getItem("token");
+
+      const url = currentFolderId
+        ? `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays/${selectedTrayId}/folders?parentFolderId=${currentFolderId}`
+        : `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays/${selectedTrayId}/folders`;
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      setFolders(data);
+    }
+
+    fetchFolders();
+  }, [selectedTrayId, currentFolderId, tenantId]);
+
+  function openFolder(folder: FolderType) {
+    setCurrentFolderId(folder.id);
+
+    setBreadcrumb([
+      ...breadcrumb,
+      {
+        id: folder.id,
+        name: folder.name,
+      },
+    ]);
+  }
+
+  function goToBreadcrumb(index: number) {
+    if (index === -1) {
+      // Clicked the root/tray name
+      setCurrentFolderId(null);
+      setBreadcrumb([]);
+      return;
+    }
+
+    const clicked = breadcrumb[index];
+
+    setCurrentFolderId(clicked.id);
+    setBreadcrumb(breadcrumb.slice(0, index + 1));
+  }
+
+  async function handleCreateFolder() {
+    if (!newFolderName.trim() || !selectedTrayId) return;
+    const token = localStorage.getItem("token");
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays/${selectedTrayId}/folders`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: newFolderName,
+          parentFolderId: currentFolderId,
+        }),
+      },
+    );
+    if (!response.ok) {
+      alert("Failed to create folder");
+      return;
+    }
+    const created = await response.json();
+    setFolders([...folders, created]);
+    setNewFolderName("");
+    setShowCreateFolder(false);
+  }
+
+  async function handleMove(documentId: string, folderId: string | null) {
+    const token = localStorage.getItem("token");
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/documents/${documentId}/move`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ folderId }),
+      },
+    );
+    if (!response.ok) {
+      alert("Failed to move document");
+      return;
+    }
+    // The document moved to a different folder - it no longer belongs
+    // in THIS level's view, so remove it from the current list directly
+    // // rather than re-fetching.
+    setFiles(files.filter((f) => f.id !== documentId));
+  }
 
   return (
-    <>
-      <div className="max-w-lg mx-auto mt-20 p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Archived Documents</h1>
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Archived Documents</h1>
+
+      {showCreateFolder ? (
+        <div className="flex gap-2 mb-3">
+          {" "}
+          <input
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            placeholder="Folder name"
+            className="border border-[var(--color-line)] rounded-md px-3 py-1.5 text-sm"
+          />{" "}
           <button
-            onClick={() => logout(navigate)}
-            className="text-sm text-gray-500 hover:text-red-600"
+            onClick={handleCreateFolder}
+            className="text-sm text-[var(--color-vault)] hover:underline"
           >
-            Log out
-          </button>
+            {" "}
+            Create{" "}
+          </button>{" "}
+          <button
+            onClick={() => setShowCreateFolder(false)}
+            className="text-sm text-[var(--color-muted)] hover:underline"
+          >
+            {" "}
+            Cancel{" "}
+          </button>{" "}
         </div>
+      ) : (
+        <button
+          onClick={() => setShowCreateFolder(true)}
+          className="text-sm text-[var(--color-vault)] hover:underline mb-3"
+        >
+          {" "}
+          + New folder{" "}
+        </button>
+      )}
 
-        {loading && <p>Loading...</p>}
+      {/* Tray tabs */}
+      <div className="flex gap-2 mb-4 border-b border-[var(--color-line)]">
+        {trays.map((tray) => (
+          <button
+            key={tray.id}
+            onClick={() => setSelectedTrayId(tray.id)}
+            className={
+              selectedTrayId === tray.id
+                ? "px-3 py-2 text-sm font-medium text-[var(--color-vault)] border-b-2 border-[var(--color-vault)]"
+                : "px-3 py-2 text-sm text-[var(--color-muted)] hover:text-[var(--color-ink)]"
+            }
+          >
+            {tray.name}
+          </button>
+        ))}
+      </div>
 
-        {!loading && files.length === 0 && (
-          <p className="text-gray-500">
-            You don't have any files uploaded in this Tenant.
-          </p>
-        )}
+      {/* Breadcrumb */}
+      <div className="text-sm text-[var(--color-muted)] mb-3">
+        <button
+          onClick={() => goToBreadcrumb(-1)}
+          className="hover:text-[var(--color-ink)] hover:underline"
+        >
+          {trays.find((t) => t.id === selectedTrayId)?.name ?? "Root"}
+        </button>
 
-        <ul className="flex flex-col gap-2">
-          {files.map((file) => (
+        {breadcrumb.map((crumb, index) => (
+          <span key={crumb.id}>
+            {" / "}
+
+            <button
+              onClick={() => goToBreadcrumb(index)}
+              className="hover:text-[var(--color-ink)] hover:underline"
+            >
+              {crumb.name}
+            </button>
+          </span>
+        ))}
+      </div>
+
+      {/* Folders */}
+      <ul className="flex flex-col gap-2 mb-4">
+        {folders.map((folder) => (
+          <li key={folder.id}>
+            <button
+              onClick={() => openFolder(folder)}
+              className="w-full text-left border border-[var(--color-line)] rounded-md px-4 py-2 font-medium hover:bg-[#F2EFE8]"
+            >
+              📁 {folder.name}
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {/* Files */}
+      {loading && <p>Loading...</p>}
+
+      {!loading && files.length === 0 && (
+        <p className="text-[var(--color-muted)]">
+          You don't have any files uploaded in this tray.
+        </p>
+      )}
+
+      <ul className="flex flex-col gap-2">
+        {files.map((file) => (
+          <>
             <li
               key={file.id}
-              className="border rounded px-4 py-2 flex justify-between items-center"
+              className="border border-[var(--color-line)] rounded-md px-4 py-2 flex justify-between items-center"
             >
               <div>
                 <p className="font-semibold">{file.fileName}</p>
-                <p className="text-sm text-gray-500">{convertToMB(file.sizeBytes)}</p>
-                <p className="text-sm text-gray-500">{new Date(file.frozenAt).toLocaleString()}</p>
+
+                <p className="text-sm text-[var(--color-muted)]">
+                  {convertToMB(file.sizeBytes)}
+                </p>
+
+                <p className="text-sm text-[var(--color-muted)]">
+                  {new Date(file.frozenAt).toLocaleString()}
+                </p>
               </div>
             </li>
-          ))}
-        </ul>
+            <li
+              key={file.id}
+              className="border border-[var(--color-line)] rounded-md px-4 py-2 flex justify-between items-center"
+            >
+              {" "}
+              <div>
+                {" "}
+                <p className="font-semibold">{file.fileName}</p>{" "}
+                <p className="text-sm text-[var(--color-muted)]">
+                  {convertToMB(file.sizeBytes)}
+                </p>{" "}
+                <p className="text-sm text-[var(--color-muted)]">
+                  {new Date(file.frozenAt).toLocaleString()}
+                </p>{" "}
+              </div>{" "}
+              <select
+                onChange={(e) => handleMove(file.id, e.target.value || null)}
+                defaultValue=""
+                className="text-sm border border-[var(--color-line)] rounded px-2 py-1"
+              >
+                {" "}
+                <option value="" disabled>
+                  Move to...
+                </option>{" "}
+                <option value="">Root (no folder)</option>{" "}
+                {folders.map((folder) => (
+                  <option key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </option>
+                ))}{" "}
+              </select>{" "}
+            </li>
+          </>
+        ))}
+      </ul>
 
-        <Link
-          to="/tenants"
-          className="inline-block mt-4 text-blue-600 hover:underline"
-        >
-          Dashboard
-        </Link>
-      </div>
-    </>
+      {/* Dashboard */}
+      <Link
+        to="/tenants"
+        className="inline-block mt-4 text-[var(--color-vault)] hover:underline"
+      >
+        Dashboard
+      </Link>
+    </div>
   );
 }
