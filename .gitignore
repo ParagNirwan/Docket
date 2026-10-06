@@ -16,3 +16,5 @@
 *.user
 
 **/uploads/
+
+GCP_Plan.md
