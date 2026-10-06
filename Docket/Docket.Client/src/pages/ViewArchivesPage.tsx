@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router";
-import { Folder, File, FolderPlus, ArrowLeft } from "lucide-react";
+import { Folder, File, FolderPlus } from "lucide-react";
 
 type ArchivedFile = {
   id: string;
