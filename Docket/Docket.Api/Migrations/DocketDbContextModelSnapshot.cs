@@ -52,6 +52,9 @@ namespace Docket.Api.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("TrayId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UploadedByUserId")
                         .HasColumnType("uuid");
 
@@ -62,6 +65,37 @@ namespace Docket.Api.Migrations
                     b.HasIndex("UploadedByUserId");
 
                     b.ToTable("ArchivedDocuments");
+                });
+
+            modelBuilder.Entity("Docket.Api.Data.Folder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ParentFolderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TrayId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentFolderId");
+
+                    b.HasIndex("TrayId");
+
+                    b.ToTable("Folders");
                 });
 
             modelBuilder.Entity("Docket.Api.Data.Tenant", b =>
@@ -111,6 +145,29 @@ namespace Docket.Api.Migrations
                     b.ToTable("TenantMemberships");
                 });
 
+            modelBuilder.Entity("Docket.Api.Data.Tray", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("Trays");
+                });
+
             modelBuilder.Entity("Docket.Api.Data.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -156,7 +213,35 @@ namespace Docket.Api.Migrations
                     b.Navigation("UploadedByUser");
                 });
 
+            modelBuilder.Entity("Docket.Api.Data.Folder", b =>
+                {
+                    b.HasOne("Docket.Api.Data.Folder", "ParentFolder")
+                        .WithMany()
+                        .HasForeignKey("ParentFolderId");
+
+                    b.HasOne("Docket.Api.Data.Tray", "Tray")
+                        .WithMany()
+                        .HasForeignKey("TrayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ParentFolder");
+
+                    b.Navigation("Tray");
+                });
+
             modelBuilder.Entity("Docket.Api.Data.TenantMembership", b =>
+                {
+                    b.HasOne("Docket.Api.Data.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Docket.Api.Data.Tray", b =>
                 {
                     b.HasOne("Docket.Api.Data.Tenant", "Tenant")
                         .WithMany()

@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useNavigate } from "react-router";
 
+type Tray = { id: string; name: string };
+
 export function UploadPage() {
   const { tenantId } = useParams();
   const [file, setFile] = useState<File | null>(null);
   const navigate = useNavigate();
   const [tenantName, setTenantName] = useState();
+  const [trays, setTrays] = useState<Tray[]>([]);
+  const [selectedTrayId, setSelectedTrayId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchTenantName() {
@@ -22,15 +26,33 @@ export function UploadPage() {
     }
 
     fetchTenantName();
-  },[tenantId]);
+  }, [tenantId]);
+
+  useEffect(() => {
+    async function fetchTrays() {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      const data = await response.json();
+      setTrays(data);
+      if (data.length > 0) {
+        setSelectedTrayId(data[0].id);
+      }
+    }
+    fetchTrays();
+  }, [tenantId]);
 
   async function handleUpload() {
     if (!file) return;
+    if (!selectedTrayId) return;
+
     const formData = new FormData();
     formData.append("file", file);
     const token = localStorage.getItem("token");
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/documents/upload`,
+      `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays/${selectedTrayId}/documents/upload`,
       {
         method: "POST",
         headers: {
