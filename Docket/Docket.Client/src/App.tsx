@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router";
+import { Routes, Route, Navigate } from "react-router";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { CreateTenantPage } from "./pages/CreateTenantPage";
@@ -11,6 +11,7 @@ import { AccountSettingsPage } from "./pages/AccountSettingsPage";
 function App() {
   return (
     <Routes>
+      <Route path="/" element={localStorage.getItem('token') ? <Navigate to="/tenants" replace /> : <Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route

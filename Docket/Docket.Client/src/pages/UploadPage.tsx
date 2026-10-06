@@ -10,7 +10,7 @@ export function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const navigate = useNavigate();
   const [tenantName, setTenantName] = useState();
-  const [trays, setTrays] = useState<Tray[]>([]);
+  const [, setTrays] = useState<Tray[]>([]);
   const [selectedTrayId, setSelectedTrayId] = useState<string | null>(null);
 
   useEffect(() => {
