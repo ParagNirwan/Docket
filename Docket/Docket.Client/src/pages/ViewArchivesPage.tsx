@@ -287,64 +287,75 @@ export function ViewArchivesPage() {
         ))}
       </div>
 
-      {/* Folders */}
-      <ul className="flex flex-col gap-2 mb-4">
-        {folders.map((folder) => (
-          <li key={folder.id}>
-            <button
-              onClick={() => openFolder(folder)}
-              className="w-full text-left border border-[var(--color-line)] rounded-md px-4 py-2 font-medium hover:bg-[#F2EFE8] flex items-center gap-2"
-            >
-              <Folder className="w-4 h-4 text-gray-500" /> {folder.name}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className="border border-[var(--color-line)] rounded-md bg-white overflow-hidden shadow-sm mb-4">
+        {/* Folders */}
+        {folders.length > 0 && (
+          <ul className="flex flex-col">
+            {folders.map((folder) => (
+              <li key={folder.id} className="border-b border-[var(--color-line)] last:border-b-0">
+                <button
+                  onClick={() => openFolder(folder)}
+                  className="w-full text-left px-4 py-3 hover:bg-[#F2EFE8] flex items-center gap-3 transition-colors"
+                >
+                  <Folder className="w-5 h-5 text-gray-500 fill-current" />
+                  <span className="font-medium text-sm text-gray-900">{folder.name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {/* Files */}
-      {loading && <p>Loading...</p>}
+        {/* Separator if both exist */}
+        {folders.length > 0 && files.length > 0 && (
+          <div className="border-b border-[var(--color-line)] w-full"></div>
+        )}
 
-      {!loading && files.length === 0 && (
-        <p className="text-[var(--color-muted)]">
-          You don't have any files uploaded in this tray.
-        </p>
-      )}
+        {/* Files */}
+        {loading && <div className="px-4 py-3 text-sm text-[var(--color-muted)]">Loading...</div>}
 
-      <ul className="flex flex-col gap-2">
-        {files.map((file) => (
-          <li
-            key={file.id}
-            className="border border-[var(--color-line)] rounded-md px-4 py-2 flex justify-between items-center"
-          >
-            <div className="flex items-center gap-3">
-              <File className="w-8 h-8 text-gray-400 flex-shrink-0" />
-              <div>
-                <p className="font-semibold">{file.fileName}</p>
-                <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
-                  <span>{convertToMB(file.sizeBytes)}</span>
-                  <span>&bull;</span>
-                  <span>{new Date(file.frozenAt).toLocaleString()}</span>
+        {!loading && files.length === 0 && folders.length === 0 && (
+          <div className="px-4 py-8 text-center text-sm text-[var(--color-muted)]">
+            This folder is empty.
+          </div>
+        )}
+
+        {!loading && files.length > 0 && (
+          <ul className="flex flex-col">
+            {files.map((file) => (
+              <li
+                key={file.id}
+                className="px-4 py-3 border-b border-[var(--color-line)] last:border-b-0 flex justify-between items-center hover:bg-[#F2EFE8] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <File className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium text-sm text-gray-900">{file.fileName}</p>
+                    <div className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
+                      <span>{convertToMB(file.sizeBytes)}</span>
+                      <span>&bull;</span>
+                      <span>{new Date(file.frozenAt).toLocaleString()}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <select
-              onChange={(e) => handleMove(file.id, e.target.value || null)}
-              defaultValue=""
-              className="text-sm border border-[var(--color-line)] rounded px-2 py-1 bg-transparent"
-            >
-              <option value="" disabled>
-                Move to...
-              </option>
-              <option value="">Root (no folder)</option>
-              {folders.map((folder) => (
-                <option key={folder.id} value={folder.id}>
-                  {folder.name}
-                </option>
-              ))}
-            </select>
-          </li>
-        ))}
-      </ul>
+                <select
+                  onChange={(e) => handleMove(file.id, e.target.value || null)}
+                  defaultValue=""
+                  className="text-sm border border-[var(--color-line)] rounded px-2 py-1 bg-white hover:bg-gray-50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <option value="" disabled>Move to...</option>
+                  <option value="">Root (no folder)</option>
+                  {folders.map((folder) => (
+                    <option key={folder.id} value={folder.id}>
+                      {folder.name}
+                    </option>
+                  ))}
+                </select>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {/* Dashboard */}
       <Link
