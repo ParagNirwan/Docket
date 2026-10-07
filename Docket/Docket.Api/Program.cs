@@ -35,7 +35,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     };
 });
 builder.Services.AddAuthorization();
-builder.Services.AddExceptionHandler<Docket.Api.ExceptionHandling.UnauthenticatedExceptionHandler>(); 
+builder.Services.AddExceptionHandler<Docket.Api.ExceptionHandling.GlobalExceptionHandler>(); 
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
