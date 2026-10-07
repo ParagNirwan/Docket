@@ -1,5 +1,5 @@
 @import "tailwindcss";
-root {
+:root {
   --color-ink: #1c1b18;
   --color-paper: #faf8f4;
   --color-vault: #2b3a4a;

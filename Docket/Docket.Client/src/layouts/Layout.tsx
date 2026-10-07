@@ -1,50 +1,79 @@
-//use location is a hook that gives the entire url as an Object
-//It will be helpful to highlight what nav link is active
 import { Outlet, Link, useNavigate, useLocation } from "react-router";
 import { logout } from "../lib/auth";
-import { LayoutDashboard, User, LogOut, Library } from "lucide-react";
+import { Library, LogOut, Settings, UserCircle } from "lucide-react";
+import { useState } from "react";
+
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const navItems = [
-    { to: "/tenants", label: "Dashboard", icon: <LayoutDashboard className="w-4 h-4 mr-1.5 inline" /> },
-    { to: "/account", label: "Account Settings", icon: <User className="w-4 h-4 mr-1.5 inline" /> },
-  ];
+  const [profileOpen, setProfileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-[var(--color-line)]">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
-          <span className="font-semibold text-lg flex items-center gap-2"><Library className="w-5 h-5 text-[var(--color-vault)]"/> Docket</span>
-          <nav className="flex gap-4">
-            {" "}
-            {navItems.map((item) => (
+    <div className="min-h-screen bg-[var(--color-paper)] font-sans">
+      <header className="bg-white border-b border-[var(--color-line)] shadow-sm sticky top-0 z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-8">
+            <Link to="/tenants" className="font-semibold text-lg flex items-center gap-2 text-[var(--color-ink)] hover:opacity-80">
+              <Library className="w-6 h-6 text-[var(--color-vault)]"/> Docket
+            </Link>
+            
+            <nav className="hidden md:flex gap-6">
               <Link
-                key={item.to}
-                to={item.to}
-                className={
-                  location.pathname === item.to
-                    ? "text-sm font-medium text-[var(--color-vault)] border-b-2 border-[var(--color-vault)] pb-1 flex items-center"
-                    : "text-sm text-[var(--color-muted)] hover:text-[var(--color-ink)] pb-1 flex items-center"
-                }
+                to="/tenants"
+                className={`text-sm font-medium flex items-center transition-colors ${
+                  location.pathname === "/tenants" || location.pathname.startsWith("/tenant/")
+                    ? "text-[var(--color-vault)]"
+                    : "text-[var(--color-muted)] hover:text-[var(--color-ink)]"
+                }`}
               >
-                {" "}
-                {item.icon}{item.label}{" "}
+                Dashboard
               </Link>
-            ))}{" "}
-          </nav>
-          <button
-            onClick={() => logout(navigate)}
-            className="text-sm text-[var(--color-muted)] hover:text-[var(--color-danger)] flex items-center"
-          >
-            <LogOut className="w-4 h-4 mr-1.5 inline" /> Log out
-          </button>{" "}
-        </div>{" "}
-      </header>{" "}
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        {" "}
-        <Outlet />{" "}
-      </main>{" "}
+            </nav>
+          </div>
+          
+          <div className="relative">
+            <button 
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex items-center gap-2 focus:outline-none rounded-full ring-2 ring-transparent hover:ring-[var(--color-line)] transition-all"
+            >
+              <div className="w-9 h-9 bg-[var(--color-vault)] rounded-full flex items-center justify-center text-white overflow-hidden shadow-sm">
+                <UserCircle className="w-6 h-6" strokeWidth={1.5} />
+              </div>
+            </button>
+            
+            {profileOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setProfileOpen(false)}></div>
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-[var(--color-line)] rounded-lg shadow-lg z-20 py-1 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[var(--color-line)] bg-[var(--color-paper)]">
+                    <p className="text-sm font-semibold text-[var(--color-ink)]">Signed In</p>
+                  </div>
+                  <div className="py-1">
+                    <Link 
+                      to="/settings" 
+                      className="px-4 py-2 text-sm text-[var(--color-muted)] hover:bg-[var(--color-paper)] hover:text-[var(--color-ink)] flex items-center transition-colors"
+                      onClick={() => setProfileOpen(false)}
+                    >
+                      <Settings className="w-4 h-4 mr-2" /> Settings
+                    </Link>
+                  </div>
+                  <div className="border-t border-[var(--color-line)] py-1">
+                    <button
+                      onClick={() => { setProfileOpen(false); logout(navigate); }}
+                      className="w-full text-left px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-[#fff5f5] flex items-center transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" /> Log out
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <Outlet />
+      </main>
     </div>
   );
 }

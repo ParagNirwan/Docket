@@ -6,8 +6,12 @@ import { TenantDashboardPage } from "./pages/TenantDashboardPage";
 import { UploadPage } from "./pages/UploadPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Layout } from "./layouts/Layout";
+import { SettingsLayout } from "./layouts/SettingsLayout";
 import { ViewArchivesPage } from "./pages/ViewArchivesPage";
-import { AccountSettingsPage } from "./pages/AccountSettingsPage";
+import { ProfileSettingsPage } from "./pages/ProfileSettingsPage";
+import { AppSettingsPage } from "./pages/AppSettingsPage";
+import { TenantSettingsPage } from "./pages/TenantSettingsPage";
+
 function App() {
   return (
     <Routes>
@@ -17,7 +21,6 @@ function App() {
       <Route
         element={
           <ProtectedRoute>
-            {" "}
             <Layout />
           </ProtectedRoute>
         }
@@ -26,9 +29,14 @@ function App() {
         <Route path="/create-tenant" element={<CreateTenantPage />} />
         <Route path="/tenant/:tenantId/upload" element={<UploadPage />} />
         <Route path="/tenant/:tenantId/view-archives" element={<ViewArchivesPage />}/>
-        <Route path="/account" element={<AccountSettingsPage />}/>
-
-      </Route>{" "}
+        
+        <Route path="/settings" element={<SettingsLayout />}>
+          <Route index element={<Navigate to="profile" replace />} />
+          <Route path="profile" element={<ProfileSettingsPage />} />
+          <Route path="app" element={<AppSettingsPage />} />
+          <Route path="tenant" element={<TenantSettingsPage />} />
+        </Route>
+      </Route>
     </Routes>
   );
 }
