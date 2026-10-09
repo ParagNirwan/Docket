@@ -1,16 +1,64 @@
 @import "tailwindcss";
+
+/* ─────────────────────────────────────────────
+   Light Theme
+   Clean slate/zinc neutrals · indigo accent
+   ───────────────────────────────────────────── */
 :root {
-  --color-ink: #1c1b18;
-  --color-paper: #faf8f4;
-  --color-vault: #2b3a4a;
-  --color-vault-hover: #233040;
-  --color-seal: #a6472e;
-  --color-line: #e4dfd5;
-  --color-muted: #6b655c;
-  --color-success: #3d6b47;
-  --color-danger: #9b3b34;
+  /* Backgrounds */
+  --color-paper:   #f4f4f5;   /* zinc-100  – page bg            */
+  --color-surface: #ffffff;   /* white     – cards, panels       */
+
+  /* Text */
+  --color-ink:     #18181b;   /* zinc-900  – primary text        */
+  --color-muted:   #71717a;   /* zinc-500  – secondary / meta    */
+
+  /* Accent */
+  --color-vault:       #6366f1;   /* indigo-500 – primary action  */
+  --color-vault-hover: #4f46e5;   /* indigo-600 – hover state     */
+  --color-vault-subtle:#eef2ff;   /* indigo-50  – tinted bg       */
+
+  /* Semantic */
+  --color-seal:    #f97316;   /* orange-500 – warning / seal     */
+  --color-success: #22c55e;   /* green-500                       */
+  --color-danger:  #ef4444;   /* red-500                         */
+
+  /* Structure */
+  --color-line:    #e4e4e7;   /* zinc-200  – borders, dividers   */
 }
+
+/* ─────────────────────────────────────────────
+   Dark Theme
+   Slate-950 base · violet accent
+   ───────────────────────────────────────────── */
+.dark {
+  /* Backgrounds */
+  --color-paper:   #09090b;   /* zinc-950  – page bg             */
+  --color-surface: #18181b;   /* zinc-900  – cards, panels       */
+
+  /* Text */
+  --color-ink:     #fafafa;   /* zinc-50   – primary text        */
+  --color-muted:   #a1a1aa;   /* zinc-400  – secondary / meta    */
+
+  /* Accent */
+  --color-vault:       #818cf8;   /* indigo-400 – visible on dark */
+  --color-vault-hover: #a5b4fc;   /* indigo-300 – hover           */
+  --color-vault-subtle:#1e1b4b;   /* indigo-950 – tinted bg       */
+
+  /* Semantic */
+  --color-seal:    #fb923c;   /* orange-400                      */
+  --color-success: #4ade80;   /* green-400                       */
+  --color-danger:  #f87171;   /* red-400                         */
+
+  /* Structure */
+  --color-line:    #27272a;   /* zinc-800  – borders, dividers   */
+}
+
+/* ─────────────────────────────────────────────
+   Base
+   ───────────────────────────────────────────── */
 body {
   background-color: var(--color-paper);
   color: var(--color-ink);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
