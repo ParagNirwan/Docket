@@ -21,4 +21,5 @@ public class DocketDbContext(DbContextOptions<DocketDbContext> options /* Modern
     public DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
     public DbSet<Tray> Trays => Set<Tray>(); 
     public DbSet<Folder> Folders => Set<Folder>();
+    public DbSet<IntakeItem> IntakeItems => Set<IntakeItem>();
 }

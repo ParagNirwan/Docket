@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router";
-import { Folder, File, FolderPlus } from "lucide-react";
+import { Link, useParams, useSearchParams } from "react-router";
+import { Folder, File, FolderPlus, Upload } from "lucide-react";
 
 type ArchivedFile = {
   id: string;
@@ -33,9 +33,17 @@ export function ViewArchivesPage() {
   const [folders, setFolders] = useState<FolderType[]>([]);
 
   const { tenantId } = useParams();
+  const [searchParams] = useSearchParams();
+  const trayParam = searchParams.get("trayId");
 
   const [trays, setTrays] = useState<Tray[]>([]);
   const [selectedTrayId, setSelectedTrayId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (trayParam) {
+      setSelectedTrayId(trayParam);
+    }
+  }, [trayParam]);
 
   function convertToMB(bytes: number) {
     if (bytes < 1024 * 1024) {
@@ -98,7 +106,11 @@ export function ViewArchivesPage() {
       setTrays(data);
 
       if (data.length > 0) {
-        setSelectedTrayId(data[0].id);
+        if (trayParam && data.some((t: Tray) => t.id === trayParam)) {
+          setSelectedTrayId(trayParam);
+        } else {
+          setSelectedTrayId(data[0].id);
+        }
       }
     }
 
@@ -212,40 +224,45 @@ export function ViewArchivesPage() {
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Archived Documents</h1>
 
-      {showCreateFolder ? (
-        <div className="flex gap-2 mb-3">
-          {" "}
-          <input
-            type="text"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            placeholder="Folder name"
-            className="border border-[var(--color-line)] rounded-md px-3 py-1.5 text-sm"
-          />{" "}
+      <div className="flex items-center justify-between mb-3">
+        {showCreateFolder ? (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Folder name"
+              className="border border-[var(--color-line)] rounded-md px-3 py-1.5 text-sm"
+            />
+            <button
+              onClick={handleCreateFolder}
+              className="text-sm text-[var(--color-vault)] hover:underline"
+            >
+              Create
+            </button>
+            <button
+              onClick={() => setShowCreateFolder(false)}
+              className="text-sm text-[var(--color-muted)] hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
           <button
-            onClick={handleCreateFolder}
-            className="text-sm text-[var(--color-vault)] hover:underline"
+            onClick={() => setShowCreateFolder(true)}
+            className="text-sm text-[var(--color-vault)] hover:underline flex items-center gap-1.5"
           >
-            {" "}
-            Create{" "}
-          </button>{" "}
-          <button
-            onClick={() => setShowCreateFolder(false)}
-            className="text-sm text-[var(--color-muted)] hover:underline"
-          >
-            {" "}
-            Cancel{" "}
-          </button>{" "}
-        </div>
-      ) : (
-        <button
-          onClick={() => setShowCreateFolder(true)}
-          className="text-sm text-[var(--color-vault)] hover:underline mb-3 flex items-center gap-1.5"
+            <FolderPlus className="w-4 h-4" /> New folder
+          </button>
+        )}
+
+        <Link
+          to={`/tenant/${tenantId}/upload?trayId=${selectedTrayId || ""}${currentFolderId ? `&folderId=${currentFolderId}` : ""}`}
+          className="text-sm bg-[var(--color-vault)] text-white px-3 py-1.5 rounded-md hover:opacity-90 flex items-center gap-1.5"
         >
-          {" "}
-          <FolderPlus className="w-4 h-4" /> New folder{" "}
-        </button>
-      )}
+          <Upload className="w-4 h-4" /> Upload file
+        </Link>
+      </div>
 
       {/* Tray tabs */}
       <div className="flex gap-2 mb-4 border-b border-[var(--color-line)]">

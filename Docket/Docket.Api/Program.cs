@@ -70,6 +70,7 @@ app.MapTenantEndpoints();
 app.MapArchiveEndpoints();
 app.MapTrayEndpoints();
 app.MapFolderEndpoints();
+app.MapIntakeEndpoints();
 
 
 app.Run();
