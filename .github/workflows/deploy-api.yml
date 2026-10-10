@@ -1,0 +1,42 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Docket/Docket.Api/**"
+      - ".github/workflows/deploy-api.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: docket-510812
+  REGION: europe-west3
+  IMAGE: europe-west3-docker.pkg.dev/docket-510812/docket-images/docket-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/505846905694/locations/global/workloadIdentityPools/github/providers/docket-repo
+          service_account: github-deployer@docket-510812.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker europe-west3-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          docker build -t $IMAGE:${{ github.sha }} Docket/Docket.Api
+          docker push $IMAGE:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        run: gcloud run deploy docket-api --image=$IMAGE:${{ github.sha }} --region=$REGION --project=$PROJECT_ID
