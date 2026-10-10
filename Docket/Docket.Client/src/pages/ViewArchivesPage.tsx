@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useSearchParams } from "react-router";
 import {
   Folder,
   File,
@@ -19,6 +19,8 @@ import {
   List,
   LayoutGrid,
   Image,
+  Upload,
+  ClipboardCheck,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -257,9 +259,12 @@ function ThumbnailCard({ file, folders, onMove }: { file: ArchivedFile; folders:
 
 export function ViewArchivesPage() {
   const { tenantId } = useParams();
+  const [searchParams] = useSearchParams();
+  const trayParam = searchParams.get("trayId");
 
   const [trays, setTrays] = useState<Tray[]>([]);
   const [selectedTrayId, setSelectedTrayId] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState<number>(0);
   const [files, setFiles] = useState<ArchivedFile[]>([]);
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -279,6 +284,33 @@ export function ViewArchivesPage() {
     localStorage.setItem("vault-view-mode", m);
   }
 
+  // Sync tray with URL param
+  useEffect(() => {
+    if (trayParam) {
+      setSelectedTrayId(trayParam);
+    }
+  }, [trayParam]);
+
+  // Fetch pending review count
+  useEffect(() => {
+    if (!tenantId) return;
+    async function fetchPendingCount() {
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/tenant/${tenantId}/intake?status=Pending`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPendingCount(Array.isArray(data) ? data.length : 0);
+        }
+      } catch {
+        // Ignored
+      }
+    }
+    fetchPendingCount();
+  }, [tenantId]);
+
   // ── Data fetching ──────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -290,7 +322,13 @@ export function ViewArchivesPage() {
       });
       const data = await res.json();
       setTrays(data);
-      if (data.length > 0) setSelectedTrayId(data[0].id);
+      if (data.length > 0) {
+        if (trayParam && data.some((t: Tray) => t.id === trayParam)) {
+          setSelectedTrayId(trayParam);
+        } else {
+          setSelectedTrayId(data[0].id);
+        }
+      }
     }
     fetchTrays();
   }, [tenantId]);
@@ -400,7 +438,25 @@ export function ViewArchivesPage() {
 
         {/* ── Sidebar ── */}
         <aside className="w-full md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-[var(--color-line)] flex flex-col">
-          <div className="px-4 py-4 border-b border-[var(--color-line)]">
+          {/* Review link — always at top, above Trays */}
+          <div className="p-2 border-b border-[var(--color-line)]">
+            <Link
+              to={`/tenant/${tenantId}/review`}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-line)] transition-colors"
+            >
+              <span className="flex items-center gap-2.5">
+                <ClipboardCheck className="w-4 h-4 flex-shrink-0 text-[var(--color-vault)]" />
+                Review
+              </span>
+              {pendingCount > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-[var(--color-seal)] text-white">
+                  {pendingCount}
+                </span>
+              )}
+            </Link>
+          </div>
+
+          <div className="px-4 py-3 border-b border-[var(--color-line)]">
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-muted)]">
               Trays
             </p>
@@ -427,6 +483,17 @@ export function ViewArchivesPage() {
               );
             })}
           </nav>
+
+          {/* Upload shortcut at bottom of sidebar */}
+          <div className="p-2 border-t border-[var(--color-line)]">
+            <Link
+              to={`/tenant/${tenantId}/upload?trayId=${selectedTrayId || ""}${currentFolderId ? `&folderId=${currentFolderId}` : ""}`}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-[var(--color-muted)] hover:bg-[var(--color-line)] hover:text-[var(--color-ink)] transition-colors"
+            >
+              <Upload className="w-4 h-4 flex-shrink-0" />
+              Upload File
+            </Link>
+          </div>
         </aside>
 
         {/* ── Explorer ── */}

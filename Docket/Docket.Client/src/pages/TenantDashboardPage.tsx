@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Archive, Upload, Plus, Building2 } from "lucide-react";
+import { Archive, Upload, Plus, Building2, Inbox } from "lucide-react";
 
 type Tenant = {
   id: string;
@@ -57,6 +57,12 @@ export function TenantDashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <Link
+                to={`/tenant/${tenant.id}/review`}
+                className="text-[var(--color-vault)] hover:underline text-sm flex items-center gap-1.5 font-medium"
+              >
+                <Inbox className="w-4 h-4" /> Review
+              </Link>
               <Link
                 to={`/tenant/${tenant.id}/view-archives`}
                 className="text-blue-600 hover:underline text-sm flex items-center gap-1.5"

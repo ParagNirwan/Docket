@@ -11,6 +11,7 @@ import { ViewArchivesPage } from "./pages/ViewArchivesPage";
 import { ProfileSettingsPage } from "./pages/ProfileSettingsPage";
 import { AppSettingsPage } from "./pages/AppSettingsPage";
 import { TenantSettingsPage } from "./pages/TenantSettingsPage";
+import { ReviewPage } from "./pages/ReviewPage";
 
 function App() {
   return (
@@ -28,8 +29,9 @@ function App() {
         <Route path="/tenants" element={<TenantDashboardPage />} />
         <Route path="/create-tenant" element={<CreateTenantPage />} />
         <Route path="/tenant/:tenantId/upload" element={<UploadPage />} />
-        <Route path="/tenant/:tenantId/view-archives" element={<ViewArchivesPage />}/>
-        
+        <Route path="/tenant/:tenantId/view-archives" element={<ViewArchivesPage />} />
+        <Route path="/tenant/:tenantId/review" element={<ReviewPage />} />
+
         <Route path="/settings" element={<SettingsLayout />}>
           <Route index element={<Navigate to="profile" replace />} />
           <Route path="profile" element={<ProfileSettingsPage />} />
