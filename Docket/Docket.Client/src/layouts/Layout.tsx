@@ -16,7 +16,7 @@ export function Layout() {
         <div className="px-4 sm:px-6 py-3 flex justify-between items-center">
           <div className="flex items-center gap-8">
             <Link to="/tenants" className="font-semibold text-lg flex items-center gap-2 text-[var(--color-ink)] hover:opacity-80">
-              <Library className="w-6 h-6 text-[var(--color-vault)]"/> Docket
+              <Library className="w-6 h-6 text-[var(--color-vault)]"/> DOCKET
             </Link>
             
             <nav className="hidden md:flex gap-6">
