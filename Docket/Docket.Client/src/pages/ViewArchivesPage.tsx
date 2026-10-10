@@ -1,3 +1,29 @@
+import { useState, useEffect, useRef } from "react";
+import { Link, useParams, useSearchParams } from "react-router";
+import {
+  Folder,
+  File,
+  FileText,
+  FileImage,
+  FileSpreadsheet,
+  FileCode,
+  FileVideo,
+  FileAudio,
+  FileArchive,
+  FileBadge,
+  FolderPlus,
+  MoreHorizontal,
+  MoveRight,
+  ChevronRight,
+  Inbox,
+  List,
+  LayoutGrid,
+  Image,
+  Upload,
+  ClipboardCheck,
+} from "lucide-react";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router";
 import { Folder, File, FolderPlus } from "lucide-react";
@@ -60,6 +86,21 @@ export function ViewArchivesPage() {
 
       const token = localStorage.getItem("token");
 
+export function ViewArchivesPage() {
+  const { tenantId } = useParams();
+  const [searchParams] = useSearchParams();
+  const trayParam = searchParams.get("trayId");
+
+  const [trays, setTrays] = useState<Tray[]>([]);
+  const [selectedTrayId, setSelectedTrayId] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState<number>(0);
+  const [files, setFiles] = useState<ArchivedFile[]>([]);
+  const [folders, setFolders] = useState<FolderType[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [breadcrumb, setBreadcrumb] = useState<{ id: string; name: string }[]>([]);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
       const url = currentFolderId
         ? `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays/${selectedTrayId}/documents?folderId=${currentFolderId}`
         : `${import.meta.env.VITE_API_URL}/tenant/${tenantId}/trays/${selectedTrayId}/documents`;
@@ -76,6 +117,34 @@ export function ViewArchivesPage() {
       setLoading(false);
     }
 
+  // Sync tray with URL param
+  useEffect(() => {
+    if (trayParam) {
+      setSelectedTrayId(trayParam);
+    }
+  }, [trayParam]);
+
+  // Fetch pending review count
+  useEffect(() => {
+    if (!tenantId) return;
+    async function fetchPendingCount() {
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/tenant/${tenantId}/intake?status=Pending`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPendingCount(Array.isArray(data) ? data.length : 0);
+        }
+      } catch {
+        // Ignored
+      }
+    }
+    fetchPendingCount();
+  }, [tenantId]);
+
+  // ── Data fetching ──────────────────────────────────────────────────────────
     fetchFiles();
   }, [selectedTrayId, currentFolderId, tenantId]);
 
@@ -96,6 +165,12 @@ export function ViewArchivesPage() {
       const data = await response.json();
 
       setTrays(data);
+      if (data.length > 0) {
+        if (trayParam && data.some((t: Tray) => t.id === trayParam)) {
+          setSelectedTrayId(trayParam);
+        } else {
+          setSelectedTrayId(data[0].id);
+        }
 
       if (data.length > 0) {
         setSelectedTrayId(data[0].id);
@@ -273,6 +348,99 @@ export function ViewArchivesPage() {
           {trays.find((t) => t.id === selectedTrayId)?.name ?? "Root"}
         </button>
 
+        {/* ── Sidebar ── */}
+        <aside className="w-full md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-[var(--color-line)] flex flex-col">
+          {/* Review link — always at top, above Trays */}
+          <div className="p-2 border-b border-[var(--color-line)]">
+            <Link
+              to={`/tenant/${tenantId}/review`}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-[var(--color-ink)] hover:bg-[var(--color-line)] transition-colors"
+            >
+              <span className="flex items-center gap-2.5">
+                <ClipboardCheck className="w-4 h-4 flex-shrink-0 text-[var(--color-vault)]" />
+                Review
+              </span>
+              {pendingCount > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-[var(--color-seal)] text-white">
+                  {pendingCount}
+                </span>
+              )}
+            </Link>
+          </div>
+
+          <div className="px-4 py-3 border-b border-[var(--color-line)]">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-muted)]">
+              Trays
+            </p>
+          </div>
+          <nav className="flex-1 overflow-y-auto p-2 flex flex-col gap-0.5">
+            {trays.length === 0 && (
+              <p className="px-3 py-2 text-xs text-[var(--color-muted)]">No trays found.</p>
+            )}
+            {trays.map((tray) => {
+              const active = tray.id === selectedTrayId;
+              return (
+                <button
+                  key={tray.id}
+                  onClick={() => setSelectedTrayId(tray.id)}
+                  className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-[var(--color-vault)] text-white"
+                      : "text-[var(--color-muted)] hover:bg-[var(--color-line)] hover:text-[var(--color-ink)]"
+                  }`}
+                >
+                  <Inbox className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">{tray.name}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Upload shortcut at bottom of sidebar */}
+          <div className="p-2 border-t border-[var(--color-line)]">
+            <Link
+              to={`/tenant/${tenantId}/upload?trayId=${selectedTrayId || ""}${currentFolderId ? `&folderId=${currentFolderId}` : ""}`}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium text-[var(--color-muted)] hover:bg-[var(--color-line)] hover:text-[var(--color-ink)] transition-colors"
+            >
+              <Upload className="w-4 h-4 flex-shrink-0" />
+              Upload File
+            </Link>
+          </div>
+        </aside>
+
+        {/* ── Explorer ── */}
+        <div className="flex-1 flex flex-col min-w-0">
+
+          {/* Toolbar */}
+          <div className="px-4 py-3 border-b border-[var(--color-line)] flex items-center gap-3 flex-wrap">
+
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-1 text-sm text-[var(--color-muted)] flex-1 min-w-0 overflow-x-auto">
+              <button
+                onClick={() => goToBreadcrumb(-1)}
+                className="hover:text-[var(--color-ink)] whitespace-nowrap transition-colors font-medium text-[var(--color-vault)]"
+              >
+                {activeTray?.name ?? "Vault"}
+              </button>
+              {breadcrumb.map((crumb, index) => (
+                <span key={crumb.id} className="flex items-center gap-1 min-w-0">
+                  <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+                  <button
+                    onClick={() => goToBreadcrumb(index)}
+                    className={`hover:text-[var(--color-ink)] whitespace-nowrap transition-colors truncate ${
+                      index === breadcrumb.length - 1 ? "text-[var(--color-ink)] font-medium" : ""
+                    }`}
+                  >
+                    {crumb.name}
+                  </button>
+                </span>
+              ))}
+            </nav>
+
+            {/* Right controls */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {/* New folder */}
+              {!showCreateFolder ? (
         {breadcrumb.map((crumb, index) => (
           <span key={crumb.id}>
             {" / "}

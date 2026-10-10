@@ -36,8 +36,8 @@ public static class FolderEndpoints
         app.MapGet("/tenant/{tenantId}/trays/{trayId}/folders", async (
             Guid tenantId,
             Guid trayId,
-            Guid?
-            parentFolderId,
+            Guid? parentFolderId,
+            bool? all,
             CurrentUserService currentUserService,
             TenantAuthorizationService authService,
             DocketDbContext db,
@@ -46,9 +46,16 @@ public static class FolderEndpoints
             var userId = currentUserService.GetUserId(user);
             var isMember = await authService.IsMember(userId, tenantId);
             if (!isMember) return Results.Forbid();
-            var folders = await db.Folders.Where(f => f.TrayId == trayId && f.ParentFolderId == parentFolderId)
-            .Select(f => new { f.Id, f.Name, f.ParentFolderId, f.CreatedAt })
-            .ToListAsync();
+
+            var query = db.Folders.Where(f => f.TrayId == trayId);
+            if (all != true)
+            {
+                query = query.Where(f => f.ParentFolderId == parentFolderId);
+            }
+
+            var folders = await query
+                .Select(f => new { f.Id, f.Name, f.ParentFolderId, f.CreatedAt })
+                .ToListAsync();
             return Results.Ok(folders);
         }).RequireAuthorization();
     }
