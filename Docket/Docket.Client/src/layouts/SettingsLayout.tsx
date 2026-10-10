@@ -34,7 +34,7 @@ export function SettingsLayout() {
           })}
         </nav>
       </aside>
-      <main className="flex-1 bg-[var(--color-surface)] border border-[var(--color-line)] rounded-lg shadow-sm p-6">
+      <main className="flex-1 bg-white border border-[var(--color-line)] rounded-lg shadow-sm p-6">
         <Outlet />
       </main>
     </div>

@@ -16,15 +16,21 @@ builder.AddNpgsqlDbContext<Docket.Api.Data.DocketDbContext>("docketdb");
 builder.Services.AddScoped<Docket.Api.Services.CurrentUserService>();
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<Docket.Api.Services.TenantAuthorizationService>();
+
+
+//CORS
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowClient",
-    policy =>
+    options.AddPolicy("AllowClient", policy =>
     {
-        policy.WithOrigins("http://localhost:9000", "http://localhost:5173")
-    .AllowAnyHeader().AllowAnyMethod();
+        policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod();
     });
 });
+
+
+
+
 //JWT System
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
