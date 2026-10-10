@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Docket.Api.Data;
 using Docket.Api.Services;
 using System.Security.Claims;
-
+using Docket.Api.Storage;
 namespace Docket.Api.Endpoints;
 
 public static class ArchiveEndpoint
@@ -12,8 +12,9 @@ public static class ArchiveEndpoint
         app.MapPost("/tenant/{tenantId}/trays/{trayId}/documents/upload",
            async (
                CurrentUserService currentUserService,
+               IBlobStore blobStore,
                Guid tenantId,
-               Guid trayId,               // <-- was missing, now captures the route segment
+               Guid trayId,              
                DocketDbContext db,
                TenantAuthorizationService authService,
                ClaimsPrincipal user,
@@ -28,26 +29,23 @@ public static class ArchiveEndpoint
                if (file.Length == 0)
                    return Results.BadRequest("No file uploaded.");
 
-               var uploadsFolder = Path.Combine("uploads", tenantId.ToString());
-               Directory.CreateDirectory(uploadsFolder);
+               // 4. Build a unique, safe storage key
+               var safeName = Path.GetFileName(file.FileName);
+               var blobKey = $"{tenantId}/{Guid.NewGuid()}_{safeName}";
 
-               var storedFileName = $"{Guid.NewGuid()}_{file.FileName}";
-               var filePath = Path.Combine(uploadsFolder, storedFileName);
-
-               using (var stream = new FileStream(filePath, FileMode.Create))
-               {
-                   await file.CopyToAsync(stream);
-               }
+               // 5. Save through the storage abstraction (local disk or Cloud Storage)
+               await using var stream = file.OpenReadStream();
+               var blobRef = await blobStore.SaveAsync(blobKey, stream, file.ContentType);
 
                var document = new ArchivedDocument
                {
                    Id = Guid.NewGuid(),
                    TenantId = tenantId,
                    TrayId = trayId,
-                   FileName = file.FileName,
+                   FileName = safeName,
                    MimeType = file.ContentType,
                    SizeBytes = file.Length,
-                   BlobRef = filePath,
+                   BlobRef = blobRef,
                    UploadedByUserId = userId,
                    FrozenAt = DateTime.UtcNow
                };

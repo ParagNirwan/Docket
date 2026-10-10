@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Docket.Api.Data;
 using Docket.Api.Services;
+using Docket.Api.Storage;
 
 namespace Docket.Api.Endpoints;
 
@@ -21,6 +22,7 @@ public static class IntakeEndpoints
             Guid trayId,
             Guid? folderId,
             IFormFile file,
+            IBlobStore blobStore,
             CurrentUserService currentUserService,
             TenantAuthorizationService authService,
             DocketDbContext db,
@@ -47,17 +49,11 @@ public static class IntakeEndpoints
             if (file == null || file.Length == 0)
                 return Results.BadRequest("No file uploaded.");
 
-            // Save the physical file to the server's storage
-            var uploadsFolder = Path.Combine("uploads", tenantId.ToString());
-            Directory.CreateDirectory(uploadsFolder);
+            var safeName = Path.GetFileName(file.FileName);
+            var blobKey = $"{tenantId}/{Guid.NewGuid()}_{safeName}";
 
-            var storedFileName = $"{Guid.NewGuid()}_{file.FileName}";
-            var filePath = Path.Combine(uploadsFolder, storedFileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
+            await using var stream = file.OpenReadStream();
+            var blobRef = await blobStore.SaveAsync(blobKey, stream, file.ContentType);
 
             // Create a record in the database to track this "pending" document
             var intakeItem = new IntakeItem
@@ -66,10 +62,10 @@ public static class IntakeEndpoints
                 TenantId = tenantId,
                 TrayId = trayId,
                 FolderId = folderId,
-                FileName = file.FileName,
+                FileName = safeName,
                 MimeType = file.ContentType,
                 SizeBytes = file.Length,
-                BlobRef = filePath,
+                BlobRef = blobRef,
                 UploadedByUserId = userId,
                 Status = IntakeStatus.Pending,
                 CreatedAt = DateTime.UtcNow

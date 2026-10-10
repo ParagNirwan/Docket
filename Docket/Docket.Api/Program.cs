@@ -3,6 +3,10 @@ using Docket.Api.Endpoints;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Docket.Api.Storage;
+using Google.Cloud.Storage.V1;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,11 +39,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     };
 });
 builder.Services.AddAuthorization();
-builder.Services.AddExceptionHandler<Docket.Api.ExceptionHandling.GlobalExceptionHandler>(); 
+builder.Services.AddExceptionHandler<Docket.Api.ExceptionHandling.GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+if (builder.Configuration["Storage:Provider"] == "Gcs")
+{
+    builder.Services.AddSingleton(StorageClient.Create());
+    builder.Services.AddSingleton<IBlobStore, GcsBlobStore>();
+}
+else
+{
+    builder.Services.AddSingleton<IBlobStore, LocalBlobStore>();
+}
+
 var app = builder.Build();
-app.UseExceptionHandler(); 
+
+app.UseExceptionHandler();
 
 //Run EF Migrations automatically
 using (var scope = app.Services.CreateScope())
