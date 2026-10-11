@@ -5,8 +5,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Docket.Api.Storage;
 using Google.Cloud.Storage.V1;
-
-
+using FluentValidation;
+using Docket.Api.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +16,7 @@ builder.AddNpgsqlDbContext<Docket.Api.Data.DocketDbContext>("docketdb");
 builder.Services.AddScoped<Docket.Api.Services.CurrentUserService>();
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<Docket.Api.Services.TenantAuthorizationService>();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
 
 //CORS

@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Docket.Api.Data;
 using System.Security.Claims;
 using Docket.Api.Services;
+using Docket.Api.Models;
+using Docket.Api.Validation;
+
 namespace Docket.Api.Endpoints;
 
 public record CreateTenantRequest(string name, string slug);
@@ -15,21 +18,29 @@ public static class TenantEndpoints
             CurrentUserService currentUserService,
             DocketDbContext db,
             CreateTenantRequest req,
-            ClaimsPrincipal user) =>
+            ClaimsPrincipal user,
+            HttpContext ctx) =>
         {
-
             var userId = currentUserService.GetUserId(user);
+            var normalizedSlug = req.slug.Trim().ToLowerInvariant();
 
-            var exists = await db.Tenants.AnyAsync(t => t.Slug == req.slug);
+            var exists = await db.Tenants.AnyAsync(t => t.Slug == normalizedSlug);
             if (exists)
-                return Results.Conflict("This slug is already being used by another tenant.");
+            {
+                var error = ApiError.Conflict(
+                    message: "The organization handle (slug) is already taken. Please choose another one.",
+                    details: $"A tenant with slug '{normalizedSlug}' already exists.",
+                    traceId: ctx.TraceIdentifier);
+
+                return Results.Conflict(error);
+            }
 
             var tenant = new Tenant
             {
                 Id = Guid.NewGuid(),
-                Name = req.name,
+                Name = req.name.Trim(),
                 CreatedAt = DateTime.UtcNow,
-                Slug = req.slug
+                Slug = normalizedSlug
             };
 
             var membership = new TenantMembership
@@ -44,7 +55,7 @@ public static class TenantEndpoints
             db.Tenants.Add(tenant);
             db.TenantMemberships.Add(membership);
 
-            //Code tou create Default Trays
+            // Create default Tray
             var defaultTray = new Tray
             {
                 Id = Guid.NewGuid(),
@@ -54,13 +65,12 @@ public static class TenantEndpoints
             };
             db.Trays.Add(defaultTray);
 
-
             await db.SaveChangesAsync();
 
-            return Results.Created($"tenant/{tenant.Slug}", new { tenant.Id, tenant.Slug });
+            return Results.Created($"tenant/{tenant.Slug}", new { tenant.Id, tenant.Slug, tenant.Name });
         })
-        .RequireAuthorization();
-
+        .RequireAuthorization()
+        .WithValidation<CreateTenantRequest>();
 
         // GET all tenants a user has
         app.MapGet("/tenant/list", async (
@@ -68,7 +78,6 @@ public static class TenantEndpoints
             DocketDbContext db,
             ClaimsPrincipal user) =>
         {
-            // CHANGED: same replacement as /tenant/create above.
             var userId = currentUserService.GetUserId(user);
 
             var tenants = await db.TenantMemberships
@@ -76,24 +85,28 @@ public static class TenantEndpoints
                 .Include(m => m.Tenant)
                 .Select(m => new { m.Tenant!.Id, m.Tenant.Name, m.Tenant.Slug, m.Role })
                 .ToListAsync();
+
             return Results.Ok(tenants);
         })
         .RequireAuthorization();
 
-
-        app.MapGet("/tenant/{tenantId}",
-        async (
+        app.MapGet("/tenant/{tenantId}", async (
             Guid tenantId,
             CurrentUserService currentUserService,
             DocketDbContext db,
             ClaimsPrincipal user,
-            TenantAuthorizationService authService) =>
+            TenantAuthorizationService authService,
+            HttpContext ctx) =>
         {
-
             var userId = currentUserService.GetUserId(user);
 
             var isMember = await authService.IsMember(userId, tenantId);
-            if (!isMember) return Results.Forbid();
+            if (!isMember)
+            {
+                return Results.Json(
+                    ApiError.Forbidden("You do not have access to this tenant organization.", traceId: ctx.TraceIdentifier),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
 
             var tenant = await db.Tenants
                 .Where(t => t.Id == tenantId)
@@ -101,34 +114,53 @@ public static class TenantEndpoints
                 .FirstOrDefaultAsync();
 
             if (tenant is null)
-                return Results.NotFound();
+            {
+                return Results.NotFound(ApiError.NotFound("Tenant organization not found.", traceId: ctx.TraceIdentifier));
+            }
+
             return Results.Ok(tenant);
         })
         .RequireAuthorization();
 
-
-        app.MapPatch("/tenant/{tenantId}/documents/{documentId}/move",
-        async (
+        app.MapPatch("/tenant/{tenantId}/documents/{documentId}/move", async (
             Guid tenantId,
             Guid documentId,
             MoveDocumentRequest req,
             CurrentUserService currentUserService,
             DocketDbContext db,
             ClaimsPrincipal user,
-            TenantAuthorizationService authService
-            ) =>
+            TenantAuthorizationService authService,
+            HttpContext ctx) =>
         {
             var userId = currentUserService.GetUserId(user);
 
             var isMember = await authService.IsMember(userId, tenantId);
             if (!isMember)
-                return Results.Forbid();
+            {
+                return Results.Json(
+                    ApiError.Forbidden("You do not have permission to move documents in this tenant.", traceId: ctx.TraceIdentifier),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
 
             var document = await db.ArchivedDocuments
                 .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId);
 
             if (document is null)
-                return Results.NotFound();
+            {
+                return Results.NotFound(ApiError.NotFound("Archived document not found.", traceId: ctx.TraceIdentifier));
+            }
+
+            if (req.folderId.HasValue)
+            {
+                var folderExists = await db.Folders.AnyAsync(f => f.Id == req.folderId.Value && f.TenantId == tenantId);
+                if (!folderExists)
+                {
+                    return Results.NotFound(ApiError.NotFound(
+                        "The destination folder does not exist in this tenant.",
+                        details: $"FolderId '{req.folderId.Value}' was not found.",
+                        traceId: ctx.TraceIdentifier));
+                }
+            }
 
             document.FolderId = req.folderId;
             await db.SaveChangesAsync();
@@ -136,6 +168,5 @@ public static class TenantEndpoints
             return Results.Ok(document);
         })
         .RequireAuthorization();
-
     }
 }

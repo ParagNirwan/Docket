@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Docket.Api.Data;
 using Docket.Api.Services;
 using Docket.Api.Storage;
+using Docket.Api.Models;
+using Docket.Api.Validation;
 
 namespace Docket.Api.Endpoints;
 
@@ -14,6 +16,8 @@ public record BulkRejectRequest(List<Guid> ItemIds, string Reason);
 
 public static class IntakeEndpoints
 {
+    private const long MaxFileSizeBytes = 50 * 1024 * 1024; // 50 MB
+
     public static void MapIntakeEndpoints(this WebApplication app)
     {
         // Upload file to staged IntakeItem (with optional folder)
@@ -21,41 +25,75 @@ public static class IntakeEndpoints
             Guid tenantId,
             Guid trayId,
             Guid? folderId,
-            IFormFile file,
+            IFormFile? file,
             IBlobStore blobStore,
             CurrentUserService currentUserService,
             TenantAuthorizationService authService,
             DocketDbContext db,
-            ClaimsPrincipal user) =>
+            ClaimsPrincipal user,
+            HttpContext ctx) =>
         {
-            // Check if the user is allowed to access this tenant
             var userId = currentUserService.GetUserId(user);
             var isMember = await authService.IsMember(userId, tenantId);
-            if (!isMember) return Results.Forbid();
+            if (!isMember)
+            {
+                return Results.Json(
+                    ApiError.Forbidden("You do not have permission to upload files to this tenant.", traceId: ctx.TraceIdentifier),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
 
-            // Make sure the tray exists for this tenant
             var trayExists = await db.Trays.AnyAsync(t => t.Id == trayId && t.TenantId == tenantId);
-            if (!trayExists) return Results.NotFound("Tray not found.");
+            if (!trayExists)
+            {
+                return Results.NotFound(ApiError.NotFound("Destination tray was not found.", traceId: ctx.TraceIdentifier));
+            }
 
-            // If a folder was specified, make sure it's valid and belongs to the tray
             if (folderId.HasValue)
             {
                 var folder = await db.Folders.FirstOrDefaultAsync(f => f.Id == folderId.Value && f.TenantId == tenantId);
-                if (folder == null) return Results.NotFound("Folder not found.");
-                if (folder.TrayId != trayId) return Results.BadRequest("Folder does not belong to the specified tray.");
+                if (folder == null)
+                {
+                    return Results.NotFound(ApiError.NotFound("Destination folder was not found.", traceId: ctx.TraceIdentifier));
+                }
+                if (folder.TrayId != trayId)
+                {
+                    return Results.BadRequest(ApiError.BadRequest(
+                        "The destination folder does not belong to the selected tray.",
+                        details: $"Folder.TrayId '{folder.TrayId}' != target tray '{trayId}'.",
+                        traceId: ctx.TraceIdentifier));
+                }
             }
 
-            // Ensure a file was actually sent
             if (file == null || file.Length == 0)
-                return Results.BadRequest("No file uploaded.");
+            {
+                return Results.BadRequest(ApiError.BadRequest(
+                    "Please select a valid, non-empty file to upload.",
+                    details: "File form-data field was missing or had 0 bytes.",
+                    traceId: ctx.TraceIdentifier));
+            }
+
+            if (file.Length > MaxFileSizeBytes)
+            {
+                return Results.BadRequest(ApiError.BadRequest(
+                    $"File exceeds the maximum upload size of {MaxFileSizeBytes / 1024 / 1024} MB.",
+                    details: $"Received file size: {file.Length} bytes. Maximum allowed: {MaxFileSizeBytes} bytes.",
+                    traceId: ctx.TraceIdentifier));
+            }
 
             var safeName = Path.GetFileName(file.FileName);
+            if (string.IsNullOrWhiteSpace(safeName))
+            {
+                return Results.BadRequest(ApiError.BadRequest(
+                    "Invalid file name.",
+                    details: "File name cannot be empty or solely whitespace.",
+                    traceId: ctx.TraceIdentifier));
+            }
+
             var blobKey = $"{tenantId}/{Guid.NewGuid()}_{safeName}";
 
             await using var stream = file.OpenReadStream();
             var blobRef = await blobStore.SaveAsync(blobKey, stream, file.ContentType);
 
-            // Create a record in the database to track this "pending" document
             var intakeItem = new IntakeItem
             {
                 Id = Guid.NewGuid(),
@@ -63,7 +101,7 @@ public static class IntakeEndpoints
                 TrayId = trayId,
                 FolderId = folderId,
                 FileName = safeName,
-                MimeType = file.ContentType,
+                MimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType,
                 SizeBytes = file.Length,
                 BlobRef = blobRef,
                 UploadedByUserId = userId,
@@ -90,17 +128,20 @@ public static class IntakeEndpoints
             CurrentUserService currentUserService,
             TenantAuthorizationService authService,
             DocketDbContext db,
-            ClaimsPrincipal user) =>
+            ClaimsPrincipal user,
+            HttpContext ctx) =>
         {
-            // Check if the user is allowed to access this tenant
             var userId = currentUserService.GetUserId(user);
             var isMember = await authService.IsMember(userId, tenantId);
-            if (!isMember) return Results.Forbid();
+            if (!isMember)
+            {
+                return Results.Json(
+                    ApiError.Forbidden("You do not have access to view intake items in this tenant.", traceId: ctx.TraceIdentifier),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
 
-            // Start building the list of documents to show
             var query = db.IntakeItems.Where(i => i.TenantId == tenantId);
 
-            // Apply filters if the user provided any
             if (status.HasValue)
             {
                 query = query.Where(i => i.Status == status.Value);
@@ -120,7 +161,6 @@ public static class IntakeEndpoints
                 query = query.Where(i => i.FolderId == folderId.Value);
             }
 
-            // Handle pagination (showing a specific "page" of results)
             var p = page.GetValueOrDefault(1);
             if (p < 1) p = 1;
             var ps = pageSize.GetValueOrDefault(50);
@@ -163,28 +203,49 @@ public static class IntakeEndpoints
             CurrentUserService currentUserService,
             TenantAuthorizationService authService,
             DocketDbContext db,
-            ClaimsPrincipal user) =>
+            ClaimsPrincipal user,
+            HttpContext ctx) =>
         {
-            // Check if the user is allowed to access this tenant
             var userId = currentUserService.GetUserId(user);
             var isMember = await authService.IsMember(userId, tenantId);
-            if (!isMember) return Results.Forbid();
+            if (!isMember)
+            {
+                return Results.Json(
+                    ApiError.Forbidden("You do not have permission to approve intake documents.", traceId: ctx.TraceIdentifier),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
 
-            // Find the specific item and make sure it's still waiting for approval
             var item = await db.IntakeItems.FirstOrDefaultAsync(i => i.Id == itemId && i.TenantId == tenantId);
-            if (item == null) return Results.NotFound("Intake item not found.");
-            if (item.Status != IntakeStatus.Pending) return Results.BadRequest("Only pending items can be approved.");
+            if (item == null)
+            {
+                return Results.NotFound(ApiError.NotFound("Intake item was not found.", traceId: ctx.TraceIdentifier));
+            }
 
-            // Determine which folder the document should end up in
+            if (item.Status != IntakeStatus.Pending)
+            {
+                return Results.BadRequest(ApiError.BadRequest(
+                    $"This document cannot be approved because its current status is '{item.Status}'. Only pending documents can be approved.",
+                    details: $"Item {itemId} has Status={item.Status}.",
+                    traceId: ctx.TraceIdentifier));
+            }
+
             var targetFolderId = req?.FolderId ?? item.FolderId;
             if (req?.FolderId != null)
             {
                 var folder = await db.Folders.FirstOrDefaultAsync(f => f.Id == req.FolderId.Value && f.TenantId == tenantId);
-                if (folder == null) return Results.NotFound("Target folder not found.");
-                if (folder.TrayId != item.TrayId) return Results.BadRequest("Folder does not belong to the item's tray.");
+                if (folder == null)
+                {
+                    return Results.NotFound(ApiError.NotFound("Target folder was not found.", traceId: ctx.TraceIdentifier));
+                }
+                if (folder.TrayId != item.TrayId)
+                {
+                    return Results.BadRequest(ApiError.BadRequest(
+                        "The target folder does not belong to this item's tray.",
+                        details: $"Folder.TrayId '{folder.TrayId}' != Item.TrayId '{item.TrayId}'.",
+                        traceId: ctx.TraceIdentifier));
+                }
             }
 
-            // Create a permanent record in the archive (this "freezes" the document)
             var archivedDoc = new ArchivedDocument
             {
                 Id = Guid.NewGuid(),
@@ -201,7 +262,6 @@ public static class IntakeEndpoints
 
             db.ArchivedDocuments.Add(archivedDoc);
 
-            // Mark the original intake item as approved
             item.Status = IntakeStatus.Approved;
             item.FolderId = targetFolderId;
             item.ReviewedAt = DateTime.UtcNow;
@@ -221,25 +281,34 @@ public static class IntakeEndpoints
             CurrentUserService currentUserService,
             TenantAuthorizationService authService,
             DocketDbContext db,
-            ClaimsPrincipal user) =>
+            ClaimsPrincipal user,
+            HttpContext ctx) =>
         {
-            // Check if the user is allowed to access this tenant
             var userId = currentUserService.GetUserId(user);
             var isMember = await authService.IsMember(userId, tenantId);
-            if (!isMember) return Results.Forbid();
+            if (!isMember)
+            {
+                return Results.Json(
+                    ApiError.Forbidden("You do not have permission to reject intake documents.", traceId: ctx.TraceIdentifier),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
 
-            // Find the specific item and make sure it's still waiting for approval
             var item = await db.IntakeItems.FirstOrDefaultAsync(i => i.Id == itemId && i.TenantId == tenantId);
-            if (item == null) return Results.NotFound("Intake item not found.");
-            if (item.Status != IntakeStatus.Pending) return Results.BadRequest("Only pending items can be rejected.");
+            if (item == null)
+            {
+                return Results.NotFound(ApiError.NotFound("Intake item was not found.", traceId: ctx.TraceIdentifier));
+            }
 
-            // Ensure a reason for rejection was provided
-            if (string.IsNullOrWhiteSpace(req.Reason))
-                return Results.BadRequest("Rejection reason is required.");
+            if (item.Status != IntakeStatus.Pending)
+            {
+                return Results.BadRequest(ApiError.BadRequest(
+                    $"This document cannot be rejected because its current status is '{item.Status}'. Only pending documents can be rejected.",
+                    details: $"Item {itemId} has Status={item.Status}.",
+                    traceId: ctx.TraceIdentifier));
+            }
 
-            // Mark the item as rejected and record the reason
             item.Status = IntakeStatus.Rejected;
-            item.RejectionReason = req.Reason;
+            item.RejectionReason = req.Reason.Trim();
             item.ReviewedAt = DateTime.UtcNow;
             item.ReviewedByUserId = userId;
 
@@ -247,7 +316,8 @@ public static class IntakeEndpoints
 
             return Results.Ok(item);
         })
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .WithValidation<RejectIntakeRequest>();
 
         // Bulk approve intake items
         app.MapPost("/tenant/{tenantId}/intake/bulk-approve", async (
@@ -256,18 +326,29 @@ public static class IntakeEndpoints
             CurrentUserService currentUserService,
             TenantAuthorizationService authService,
             DocketDbContext db,
-            ClaimsPrincipal user) =>
+            ClaimsPrincipal user,
+            HttpContext ctx) =>
         {
             var userId = currentUserService.GetUserId(user);
             var isMember = await authService.IsMember(userId, tenantId);
-            if (!isMember) return Results.Forbid();
-
-            if (req.ItemIds == null || req.ItemIds.Count == 0)
-                return Results.BadRequest("No item IDs provided.");
+            if (!isMember)
+            {
+                return Results.Json(
+                    ApiError.Forbidden("You do not have permission to approve intake documents.", traceId: ctx.TraceIdentifier),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
 
             var items = await db.IntakeItems
                 .Where(i => i.TenantId == tenantId && req.ItemIds.Contains(i.Id) && i.Status == IntakeStatus.Pending)
                 .ToListAsync();
+
+            if (items.Count == 0)
+            {
+                return Results.BadRequest(ApiError.BadRequest(
+                    "None of the selected documents are currently in 'Pending' status.",
+                    details: "0 documents matched the selection criteria.",
+                    traceId: ctx.TraceIdentifier));
+            }
 
             var now = DateTime.UtcNow;
             foreach (var item in items)
@@ -297,7 +378,8 @@ public static class IntakeEndpoints
 
             return Results.Ok(new { ApprovedCount = items.Count });
         })
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .WithValidation<BulkApproveRequest>();
 
         // Bulk reject intake items
         app.MapPost("/tenant/{tenantId}/intake/bulk-reject", async (
@@ -306,27 +388,36 @@ public static class IntakeEndpoints
             CurrentUserService currentUserService,
             TenantAuthorizationService authService,
             DocketDbContext db,
-            ClaimsPrincipal user) =>
+            ClaimsPrincipal user,
+            HttpContext ctx) =>
         {
             var userId = currentUserService.GetUserId(user);
             var isMember = await authService.IsMember(userId, tenantId);
-            if (!isMember) return Results.Forbid();
-
-            if (req.ItemIds == null || req.ItemIds.Count == 0)
-                return Results.BadRequest("No item IDs provided.");
-
-            if (string.IsNullOrWhiteSpace(req.Reason))
-                return Results.BadRequest("Rejection reason is required.");
+            if (!isMember)
+            {
+                return Results.Json(
+                    ApiError.Forbidden("You do not have permission to reject intake documents.", traceId: ctx.TraceIdentifier),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
 
             var items = await db.IntakeItems
                 .Where(i => i.TenantId == tenantId && req.ItemIds.Contains(i.Id) && i.Status == IntakeStatus.Pending)
                 .ToListAsync();
 
+            if (items.Count == 0)
+            {
+                return Results.BadRequest(ApiError.BadRequest(
+                    "None of the selected documents are currently in 'Pending' status.",
+                    details: "0 documents matched the selection criteria.",
+                    traceId: ctx.TraceIdentifier));
+            }
+
             var now = DateTime.UtcNow;
+            var reason = req.Reason.Trim();
             foreach (var item in items)
             {
                 item.Status = IntakeStatus.Rejected;
-                item.RejectionReason = req.Reason;
+                item.RejectionReason = reason;
                 item.ReviewedAt = now;
                 item.ReviewedByUserId = userId;
             }
@@ -335,6 +426,7 @@ public static class IntakeEndpoints
 
             return Results.Ok(new { RejectedCount = items.Count });
         })
-        .RequireAuthorization();
+        .RequireAuthorization()
+        .WithValidation<BulkRejectRequest>();
     }
 }
