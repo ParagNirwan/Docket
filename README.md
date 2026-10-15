@@ -1,93 +1,64 @@
 <div align="center">
-  <h1>🗂️ Docket</h1>
-  <p>A modern, multi-tenant Document Management System designed for organization and simplicity.</p>
+  <h1>Docket</h1>
+  <p>A multi-tenant document management application for organizing and managing documents across organizations.</p>
 </div>
 
-<br/>
+## Features
 
-## ✨ Features
+- Multi-tenant organization boundaries
+- Document organization with trays and folders
+- Archive/document upload and management
+- JWT-based authentication
+- Local orchestration and observability through .NET Aspire
 
-- **Multi-tenant Architecture:** Securely isolate data across different organizations or users.
-- **Document Organization:** Organize your files efficiently using **Trays** and **Folders**.
-- **Archive Management:** Upload, view, and manage document archives effortlessly.
-- **Secure Authentication:** Built-in JWT-based authentication to keep your documents safe.
-- **Developer Experience:** Zero-friction local setup powered by **.NET Aspire**. Automatic database migrations and unified logs.
+## Tech stack
 
-## 🛠️ Tech Stack
+- **API:** .NET 10, ASP.NET Core Minimal APIs
+- **Data:** Entity Framework Core and PostgreSQL
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS
+- **Orchestration:** .NET Aspire
 
-### Backend
-- **Framework:** .NET (ASP.NET Core Minimal APIs)
-- **Data Access:** Entity Framework Core (EF Core)
-- **Database:** PostgreSQL
-- **Authentication:** JWT (JSON Web Tokens)
+## Prerequisites
 
-### Frontend
-- **Library:** React 19 
-- **Build Tool:** Vite
-- **Styling:** Tailwind CSS
-- **Language:** TypeScript
+- .NET 10 SDK
+- Node.js and npm
+- Docker Desktop or another supported container runtime for the local database services
 
-### Orchestration
-- **Local Dev:** .NET Aspire (Manages API, Frontend, PostgreSQL, and PgWeb)
+## Run locally
 
-## 🚀 Getting Started
+1. Clone the repository and open the solution.
+2. Install client dependencies:
 
-### Prerequisites
-
-Make sure you have the following installed on your machine:
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download) (or later)
-- [Node.js](https://nodejs.org/) (v18+ recommended)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Podman (Required by .NET Aspire to provision PostgreSQL and PgWeb containers automatically)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd Docket
-   ```
-
-2. **Install frontend dependencies (Optional but recommended):**
    ```bash
    cd Docket/Docket.Client
    npm install
    cd ../..
    ```
 
-### Running the Project
+3. Start the Aspire AppHost:
 
-The easiest way to run the entire stack (Database, API, and Frontend) is by using the **.NET Aspire AppHost**.
+   ```bash
+   cd Docket/Docket.AppHost
+   dotnet run
+   ```
 
-#### Using the .NET CLI:
+   Alternatively, open the solution in Visual Studio or Rider and set `Docket.AppHost` as the startup project.
 
-Navigate to the `AppHost` project and run it:
-```bash
-cd Docket/Docket.AppHost
-dotnet run
-```
+4. Use the Aspire dashboard to access the API, frontend, and local service telemetry.
 
-#### Using Visual Studio / Rider:
-1. Open the `Docket.sln` solution file.
-2. Set **`Docket.AppHost`** as the Startup Project.
-3. Press `F5` (or click Run).
+Database migrations are configured in the application startup path; review the migration and secret-management approach before deploying to a shared or production environment.
 
-### What happens when you run?
+## Project structure
 
-Once the AppHost starts, it will open the **.NET Aspire Dashboard** in your default browser. From the dashboard, you can:
-- View the **React Client** (Frontend).
-- View the **ASP.NET Core API** endpoints and Swagger UI.
-- Access **PgWeb** to browse the PostgreSQL database tables.
-- View real-time logs, metrics, and traces for all services.
+- `Docket.Api/` — API endpoints, domain logic, and EF Core integration
+- `Docket.Client/` — React frontend
+- `Docket.AppHost/` — Aspire orchestration
+- `Docket.ServiceDefaults/` — shared service defaults
 
-*Note: Entity Framework migrations are configured to run automatically when the API starts, so your database will be ready to use immediately!*
+## Security and deployment
 
-## 📁 Project Structure
+Supply secrets through environment-specific configuration and never commit credentials. Multi-tenant authorization should be tested explicitly to ensure users cannot access another tenant's documents. The local Aspire setup is for development, not a production deployment recipe.
 
-- `Docket.Api/` - The backend ASP.NET Core application, containing EF Core models, endpoints, and business logic.
-- `Docket.Client/` - The React frontend application.
-- `Docket.AppHost/` - The .NET Aspire orchestration project.
-- `Docket.ServiceDefaults/` - Shared service defaults for telemetry, health checks, and resilience.
+## License
 
-## 📝 License
-
-This project is licensed under the MIT License.
+See the repository's license file.
